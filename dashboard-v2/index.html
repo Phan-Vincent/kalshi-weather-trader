@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kalshi Weather Trader — Dashboard</title>
+<link rel="stylesheet" href="css/styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+</head>
+<body>
+<div class="bg-mesh"></div>
+<div class="bg-grid"></div>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand">
+        <div class="brand-icon">⛅</div>
+        <div class="brand-text">
+          <h1>Kalshi Trader</h1>
+          <span>Weather Markets</span>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-title">Dashboard</div>
+        <button class="nav-item active" data-tab="overview" onclick="switchTab('overview')">
+          <span class="nav-icon">📊</span> Overview
+        </button>
+        <button class="nav-item" data-tab="live" onclick="switchTab('live')">
+          <span class="nav-icon">⚡</span> Live Account
+          <span class="nav-badge" id="nav-live-badge">LIVE</span>
+        </button>
+        <button class="nav-item" data-tab="paper" onclick="switchTab('paper')">
+          <span class="nav-icon">📈</span> Paper Trading
+        </button>
+        <button class="nav-item" data-tab="positions" onclick="switchTab('positions')">
+          <span class="nav-icon">📍</span> Positions
+        </button>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-section-title">Analytics</div>
+        <button class="nav-item" data-tab="pnl" onclick="switchTab('pnl')">
+          <span class="nav-icon">💰</span> P&amp;L Analysis
+        </button>
+        <button class="nav-item" data-tab="settlements" onclick="switchTab('settlements')">
+          <span class="nav-icon">✅</span> Settlements
+        </button>
+        <button class="nav-item" data-tab="risk" onclick="switchTab('risk')">
+          <span class="nav-icon">🛡️</span> Risk
+        </button>
+        <button class="nav-item" data-tab="models" onclick="switchTab('models')">
+          <span class="nav-icon">🧠</span> Models
+        </button>
+        <button class="nav-item" data-tab="cities" onclick="switchTab('cities')">
+          <span class="nav-icon">🌆</span> Cities
+        </button>
+        <button class="nav-item" data-tab="yearly" onclick="switchTab('yearly')">
+          <span class="nav-icon">📅</span> Yearly
+        </button>
+        <button class="nav-item" data-tab="abtests" onclick="switchTab('abtests')">
+          <span class="nav-icon">🧪</span> A/B Tests
+        </button>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-section-title">Resources</div>
+        <button class="nav-item" data-tab="docs" onclick="switchTab('docs')">
+          <span class="nav-icon">📚</span> Documents
+        </button>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="connection-status">
+        <span class="status-dot" id="conn-dot"></span>
+        <span id="conn-text">Connected</span>
+      </div>
+      <div class="last-update" id="last-update">Updated —</div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main" id="main">
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <div class="page-title">
+        <h2 id="page-title">Overview</h2>
+        <p id="page-subtitle">Real-time trading dashboard</p>
+      </div>
+      <div class="top-actions">
+        <div class="time-range">
+          <button class="time-btn active" data-range="1D" onclick="setRange('1D')">1D</button>
+          <button class="time-btn" data-range="1W" onclick="setRange('1W')">1W</button>
+          <button class="time-btn" data-range="1M" onclick="setRange('1M')">1M</button>
+          <button class="time-btn" data-range="3M" onclick="setRange('3M')">3M</button>
+          <button class="time-btn" data-range="YTD" onclick="setRange('YTD')">YTD</button>
+          <button class="time-btn" data-range="ALL" onclick="setRange('ALL')">ALL</button>
+        </div>
+        <button class="icon-btn" onclick="refreshData()" title="Refresh">↻</button>
+        <button class="icon-btn" onclick="toggleSidebar()" title="Menu">☰</button>
+      </div>
+    </div>
+
+    <!-- ========== OVERVIEW ========== -->
+    <div class="tab-content active" id="tab-overview">
+      <div class="kpi-grid" id="overview-kpis"></div>
+      <div class="chart-grid">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">📈</span> Equity Curve</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container large"><canvas id="chart-equity"></canvas></div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">📉</span> Drawdown</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-drawdown"></canvas></div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-grid">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">📊</span> Daily P&amp;L</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-daily-pnl"></canvas></div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">🎯</span> Win / Loss</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-winloss"></canvas></div>
+          </div>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title"><span class="icon">📋</span> Quick Stats</div>
+        </div>
+        <div class="section-body">
+          <div class="stats-grid" id="overview-stats"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== LIVE ACCOUNT ========== -->
+    <div class="tab-content" id="tab-live">
+      <div class="kpi-grid" id="live-kpis"></div>
+      <div class="chart-grid">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">📈</span> Portfolio Value History</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container large"><canvas id="chart-live-equity"></canvas></div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">🥧</span> Capital Allocation</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-live-alloc"></canvas></div>
+          </div>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title"><span class="icon">📍</span> Open Positions</div>
+        </div>
+        <div class="section-body">
+          <div class="positions-grid" id="live-positions"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== PAPER TRADING ========== -->
+    <div class="tab-content" id="tab-paper">
+      <div class="kpi-grid" id="paper-kpis"></div>
+      <div class="chart-grid">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">📈</span> Cumulative P&amp;L</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container large"><canvas id="chart-paper-cum"></canvas></div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">📊</span> Weekly P&amp;L</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-paper-weekly"></canvas></div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-grid">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">🎯</span> Trade Size Distribution</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-paper-size"></canvas></div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">📋</span> Paper Summary</div>
+          </div>
+          <div class="section-body" id="paper-summary"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== POSITIONS ========== -->
+    <div class="tab-content" id="tab-positions">
+      <div class="kpi-grid" id="positions-kpis"></div>
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title"><span class="icon">📍</span> All Open Positions</div>
+          <div class="section-actions">
+            <select class="sel" id="pos-filter" onchange="renderPositions()">
+              <option value="all">All</option>
+              <option value="live">Live Only</option>
+              <option value="paper">Paper Only</option>
+            </select>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="scroll-x">
+            <table class="data-table">
+              <thead>
+                <tr><th>Account</th><th>Ticker</th><th>Side</th><th style="text-align:right">Qty</th><th style="text-align:right">Entry</th><th style="text-align:right">Current</th><th style="text-align:right">Unrealized</th><th>Settles</th></tr>
+              </thead>
+              <tbody id="positions-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== P&L ANALYSIS ========== -->
+    <div class="tab-content" id="tab-pnl">
+      <div class="kpi-grid" id="pnl-kpis"></div>
+      <div class="chart-grid">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">📊</span> Daily P&amp;L</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container large"><canvas id="chart-pnl-daily"></canvas></div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">📅</span> Monthly P&amp;L</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-pnl-monthly"></canvas></div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-grid">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">🎯</span> Rolling 10-Trade Win Rate</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-pnl-rolling-wr"></canvas></div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">💵</span> P&amp;L by Price Bucket</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-pnl-bucket"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== SETTLEMENTS ========== -->
+    <div class="tab-content" id="tab-settlements">
+      <div class="kpi-grid" id="settlements-kpis"></div>
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title"><span class="icon">✅</span> All Settlements</div>
+          <div class="section-actions">
+            <select class="sel" id="settle-filter" onchange="renderSettlements()">
+              <option value="all">All</option>
+              <option value="paper">Paper</option>
+              <option value="live">Live</option>
+            </select>
+            <select class="sel" id="settle-sort" onchange="renderSettlements()">
+              <option value="date-desc">Newest</option>
+              <option value="date-asc">Oldest</option>
+              <option value="pnl-desc">Best P&amp;L</option>
+              <option value="pnl-asc">Worst P&amp;L</option>
+            </select>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="scroll-x">
+            <table class="data-table">
+              <thead>
+                <tr><th>Acct</th><th>Ticker</th><th>Side</th><th style="text-align:right">Qty</th><th style="text-align:right">Entry</th><th style="text-align:right">Realized</th><th>Settled</th></tr>
+              </thead>
+              <tbody id="settlements-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="chart-grid">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">📊</span> P&amp;L by Day</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-settle-day"></canvas></div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">⚖️</span> P&amp;L by Side</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-settle-side"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== RISK ========== -->
+    <div class="tab-content" id="tab-risk">
+      <div class="kpi-grid" id="risk-kpis"></div>
+      <div class="chart-grid">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">📉</span> Drawdown Over Time</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-risk-dd"></canvas></div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">📏</span> Position Size Trend</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-risk-size"></canvas></div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-grid">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">🎯</span> P&amp;L Concentration</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-risk-conc"></canvas></div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">🔥</span> Loss Streaks</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-risk-streak"></canvas></div>
+          </div>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title"><span class="icon">🛡️</span> Risk Dashboard</div>
+        </div>
+        <div class="section-body" id="risk-details"></div>
+      </div>
+    </div>
+
+    <!-- ========== MODELS ========== -->
+    <div class="tab-content" id="tab-models">
+      <div class="chart-grid">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">📉</span> Brier Score Trend</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-model-brier"></canvas></div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">🎯</span> Calibration Curve</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-model-calib"></canvas></div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-grid">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">⚙️</span> Model Parameters</div>
+          </div>
+          <div class="section-body" id="model-params"></div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">📊</span> Calibration by Decile</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-model-calib-det"></canvas></div>
+          </div>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title"><span class="icon">🚦</span> Brier Gate Status</div>
+        </div>
+        <div class="section-body" id="model-gate"></div>
+      </div>
+    </div>
+
+    <!-- ========== CITIES ========== -->
+    <div class="tab-content" id="tab-cities">
+      <div class="chart-grid">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">💰</span> City P&amp;L</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-city-pnl"></canvas></div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">🎯</span> City Win Rate</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-city-wr"></canvas></div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-grid">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">🔥</span> Loss Streaks</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-city-streak"></canvas></div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">📊</span> Trade Count</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-city-count"></canvas></div>
+          </div>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title"><span class="icon">🚫</span> Circuit Breakers</div>
+        </div>
+        <div class="section-body" id="city-cb"></div>
+      </div>
+    </div>
+
+    <!-- ========== YEARLY ========== -->
+    <div class="tab-content" id="tab-yearly">
+      <div class="kpi-grid" id="yearly-kpis"></div>
+      <div class="chart-grid">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">💰</span> Yearly P&amp;L</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-yearly-pnl"></canvas></div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">🎯</span> Yearly Win Rate</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-yearly-wr"></canvas></div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-grid">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">📊</span> Yearly Trade Volume</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-yearly-vol"></canvas></div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">📋</span> Yearly Summary</div>
+          </div>
+          <div class="section-body" id="yearly-summary"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== A/B TESTS ========== -->
+    <div class="tab-content" id="tab-abtests">
+      <div class="kpi-grid" id="ab-kpis"></div>
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title"><span class="icon">🧪</span> A/B Arms — Paper Performance</div>
+        </div>
+        <div class="section-body">
+          <div class="scroll-x">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Arm</th><th style="text-align:right">Trades</th><th style="text-align:right">Realized P&amp;L</th>
+                  <th style="text-align:right">Return</th><th style="text-align:right">Win%</th>
+                  <th style="text-align:right">Open</th><th style="text-align:right">Fill%</th>
+                  <th style="text-align:right">¢/contract (95% CI)</th><th style="text-align:right">Brier</th>
+                  <th style="text-align:right">BSS</th>
+                </tr>
+              </thead>
+              <tbody id="ab-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="chart-grid">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">📈</span> Cumulative Realized P&amp;L by Arm</div>
+          </div>
+          <div class="section-body">
+            <div class="chart-container"><canvas id="chart-ab-equity"></canvas></div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">🎯</span> Execution — Maker Fill Funnel</div>
+          </div>
+          <div class="section-body">
+            <div class="scroll-x">
+              <table class="data-table">
+                <thead><tr><th>Arm</th><th style="text-align:right">Posted</th><th style="text-align:right">Filled</th><th style="text-align:right">Expired</th><th style="text-align:right">Dup</th><th style="text-align:right">Fill%</th></tr></thead>
+                <tbody id="ab-funnel"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== DOCS ========== -->
+    <div class="tab-content" id="tab-docs">
+      <div class="chart-grid">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">📚</span> Key Documents</div>
+          </div>
+          <div class="section-body">
+            <div class="docs-list" id="docs-list"></div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">🏗️</span> Model Architecture</div>
+          </div>
+          <div class="section-body" id="docs-arch" style="font-size:13px;line-height:1.8;color:var(--text-secondary)"></div>
+        </div>
+      </div>
+      <div class="chart-grid">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">🔗</span> Quick Links</div>
+          </div>
+          <div class="section-body" id="docs-links"></div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title"><span class="icon">📡</span> System Status</div>
+          </div>
+          <div class="section-body" id="docs-status"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="js/dashboard.js"></script>
+</body>
+</html>

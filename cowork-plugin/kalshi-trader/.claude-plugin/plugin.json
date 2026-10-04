@@ -1,0 +1,15 @@
+{
+  "name": "kalshi-trader",
+  "version": "0.1.0",
+  "description": "Monitor and safely operate the Kalshi weather trading bot from Cowork: read-only diagnostics (status, P&L, fill quality, review, dashboard) plus safe controls (trigger a cycle, halt/resume). No ad-hoc order placement.",
+  "author": {
+    "name": "Vincent Phan"
+  },
+  "keywords": [
+    "kalshi",
+    "trading",
+    "weather",
+    "monitoring",
+    "operations"
+  ]
+}

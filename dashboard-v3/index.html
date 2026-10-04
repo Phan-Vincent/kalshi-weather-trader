@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalshi Weather Trader | Dashboard v3</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --sidebar-bg: #1e293b;
+            --text-color: #f1f5f9;
+            --accent-color: #38bdf8;
+            --card-bg: #1e293b;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; display: flex; }
+        #sidebar { width: 240px; height: 100vh; background: var(--sidebar-bg); padding: 1rem; position: fixed; }
+        #main { margin-left: 260px; padding: 2rem; width: calc(100% - 260px); }
+        .tab-btn { display: block; width: 100%; padding: 0.75rem; color: var(--text-color); border: none; background: none; text-align: left; cursor: pointer; border-radius: 0.5rem; }
+        .tab-btn:hover { background: #334155; }
+        .active { background: var(--accent-color); color: #000; }
+        .card { background: var(--card-bg); padding: 1.5rem; border-radius: 1rem; margin-bottom: 1.5rem; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+        .stat-value { font-size: 1.5rem; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 0.75rem; border-bottom: 1px solid #334155; text-align: left; }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <h3>Kalshi Trader v3</h3>
+        <button class="tab-btn active" onclick="showTab('overview')">Overview</button>
+        <button class="tab-btn" onclick="showTab('live')">Live Account</button>
+        <button class="tab-btn" onclick="showTab('paper')">Paper Trading</button>
+        <button class="tab-btn" onclick="showTab('models')">Models & Brier</button>
+    </div>
+    <div id="main">
+        <div id="overview" class="tab-content">
+            <h1>Overview</h1>
+            <div class="grid" id="kpi-cards"></div>
+            <div class="card"><canvas id="pnlChart"></canvas></div>
+        </div>
+        <div id="live" class="tab-content" style="display:none"><h1>Live Account</h1><div id="live-data"></div></div>
+        <div id="paper" class="tab-content" style="display:none"><h1>Paper Trading</h1><div id="paper-data"></div></div>
+        <div id="models" class="tab-content" style="display:none"><h1>Models</h1><canvas id="brierChart"></canvas></div>
+    </div>
+
+    <script>
+        async function loadData() {
+            const [data, live, history, ab] = await Promise.all([
+                fetch('../dashboard/data.json').then(r => r.json()),
+                fetch('../dashboard/data-live.json').then(r => r.json()),
+                fetch('../dashboard/live-history.json').then(r => r.json()),
+                fetch('../dashboard/ab-data.json').then(r => r.json())
+            ]);
+            
+            // Populate Overview
+            const cards = document.getElementById('kpi-cards');
+            cards.innerHTML = `
+                <div class="card"><p>Total PnL</p><div class="stat-value">$${data.total_pnl}</div></div>
+                <div class="card"><p>Win Rate</p><div class="stat-value">${data.win_rate}%</div></div>
+            `;
+            
+            // PnL Chart
+            new Chart(document.getElementById('pnlChart'), {
+                type: 'bar',
+                data: {
+                    labels: data.daily.map(d => d.date),
+                    datasets: [{ label: 'Daily PnL', data: data.daily.map(d => d.pnl), backgroundColor: '#38bdf8' }]
+                }
+            });
+        }
+        function showTab(id) {
+            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(id).style.display = 'block';
+            event.currentTarget.classList.add('active');
+        }
+        loadData();
+    </script>
+</body>
+</html>

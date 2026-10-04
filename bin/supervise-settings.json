@@ -1,0 +1,71 @@
+{
+  "defaultMode": "dontAsk",
+  "permissions": {
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash(grep:*)",
+      "Bash(tail:*)",
+      "Bash(head:*)",
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(ls)",
+      "Bash(wc:*)",
+      "Bash(sort:*)",
+      "Bash(cut:*)",
+      "Bash(jq:*)",
+      "Bash(date:*)",
+      "Bash(date)",
+      "Bash(python3 bin/healthcheck.py)",
+      "Bash(python3 bin/fill_edge_breakdown.py:*)",
+      "Bash(python3 bin/check_fill_milestone.py:*)",
+      "Bash(python3 bin/live_fill_quality.py:*)",
+      "Bash(python3 bin/halt_live.py)",
+      "Bash(python3 bin/notify.py:*)"
+    ],
+    "deny": [
+      "Bash(rm:*)",
+      "Bash(rmdir:*)",
+      "Bash(mv:*)",
+      "Bash(cp:*)",
+      "Bash(tee:*)",
+      "Bash(dd:*)",
+      "Bash(chmod:*)",
+      "Bash(chown:*)",
+      "Bash(kill:*)",
+      "Bash(pkill:*)",
+      "Bash(bash:*)",
+      "Bash(sh:*)",
+      "Bash(zsh:*)",
+      "Bash(eval:*)",
+      "Bash(exec:*)",
+      "Bash(source:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(nc:*)",
+      "Bash(ssh:*)",
+      "Bash(scp:*)",
+      "Bash(python:*)",
+      "Bash(python3 -c:*)",
+      "Bash(python3 -:*)",
+      "Bash(python3 bin/run_variants.py:*)",
+      "Bash(python3 bin/flatten_live.py:*)",
+      "Bash(python3 bin/flatten_live.py)",
+      "Bash(python3 bin/sync_live_positions.py:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /Users/you/.openclaw/workspace/automations/kalshi-weather/bin/supervise-readonly-gate.py"
+          }
+        ]
+      }
+    ]
+  }
+}

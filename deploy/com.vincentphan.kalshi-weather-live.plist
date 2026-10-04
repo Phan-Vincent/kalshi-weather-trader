@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  LIVE trading-cycle executor for the Kalshi weather trader. Fires LIVE=1
+  run-cycle-detached.sh at the six :20 trading slots, INDEPENDENT of OpenClaw's
+  cron/gateway.
+
+  WHY (2026-07-03): the OpenClaw LIVE cron is an agentTurn — the model must choose
+  to invoke the script, and on 7/3 the deepseek turn twice finished status=ok having
+  only READ logs (it summarized the adjacent :00 PAPER cycle as if it were the LIVE
+  run; transcript-proven). 8 such silent no-ops since 7/1. The gateway cannot detect
+  or prevent this (status ok = no fatal error; nothing records whether a tool ran),
+  and OpenClaw cron cannot exec a script directly. launchd can. The OpenClaw cron is
+  KEPT as a redundant trigger + reporter: run-cycle.sh's .cycle.lock (and the
+  wrapper's own lock) dedupe whoever fires second, same pattern that already
+  protects the :10/:40 sync job racing a trading slot.
+
+  To activate:
+    cp deploy/com.vincentphan.kalshi-weather-live.plist ~/Library/LaunchAgents/
+    launchctl load  ~/Library/LaunchAgents/com.vincentphan.kalshi-weather-live.plist
+  To stop / remove:
+    launchctl unload ~/Library/LaunchAgents/com.vincentphan.kalshi-weather-live.plist
+  Verify it fired:  grep 'cycle start' logs/cycle-<date>.log  (a :20 marker)
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.vincentphan.kalshi-weather-live</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/you/.openclaw/workspace/automations/kalshi-weather/run-cycle-detached.sh</string>
+    </array>
+
+    <!-- The six LIVE slots (matches OpenClaw cron '20 9,11,13,15,17,19' America/Los_Angeles;
+         launchd StartCalendarInterval uses system local time = PT on this Mac). -->
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>20</integer></dict>
+        <dict><key>Hour</key><integer>11</integer><key>Minute</key><integer>20</integer></dict>
+        <dict><key>Hour</key><integer>13</integer><key>Minute</key><integer>20</integer></dict>
+        <dict><key>Hour</key><integer>15</integer><key>Minute</key><integer>20</integer></dict>
+        <dict><key>Hour</key><integer>17</integer><key>Minute</key><integer>20</integer></dict>
+        <dict><key>Hour</key><integer>19</integer><key>Minute</key><integer>20</integer></dict>
+    </array>
+
+    <!-- NEVER fire on load/boot: an off-slot LIVE cycle would trade at an unscheduled
+         time. (The sync job uses RunAtLoad; this one deliberately must not.) -->
+    <key>RunAtLoad</key>
+    <false/>
+
+    <!-- launchd has a bare PATH; kalshi-cli + python3 live in /opt/homebrew/bin.
+         LIVE=1 is what makes run_variants run the real-order premium-live arm. -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>LIVE</key>
+        <string>1</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/you/.openclaw/workspace/automations/kalshi-weather/logs/launchd-live.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/you/.openclaw/workspace/automations/kalshi-weather/logs/launchd-live.err.log</string>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+</dict>
+</plist>

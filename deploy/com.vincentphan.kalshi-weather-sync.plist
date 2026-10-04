@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Sync-only live-book job for the Kalshi weather trader. Runs bin/sync-live.sh at :10 and :40 (every
+  30 min), INDEPENDENT of OpenClaw's cron/gateway, to close the ~14h overnight blind spot where the
+  6×/day LIVE trading cron never syncs. Places no orders (sync + settlement reconcile + $-stop feed only).
+
+  STAGED — not installed. To activate:
+    cp deploy/com.vincentphan.kalshi-weather-sync.plist ~/Library/LaunchAgents/
+    launchctl load  ~/Library/LaunchAgents/com.vincentphan.kalshi-weather-sync.plist
+  To stop / remove:
+    launchctl unload ~/Library/LaunchAgents/com.vincentphan.kalshi-weather-sync.plist
+  Verify it fired:  tail -f logs/launchd-sync.log
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.vincentphan.kalshi-weather-sync</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/you/.openclaw/workspace/automations/kalshi-weather/bin/sync-live.sh</string>
+    </array>
+
+    <!-- Fire at :10 and :40 (every 30 min) for tighter overnight capture, deliberately OFF the trading
+         slots — PAPER cron runs at :00, LIVE at :20 — so a sync never races a trading cycle for the
+         shared .cycle.lock (a race the sync would win, making the trading cycle skip). Overnight (no
+         trading cron) both slots run uncontended. The lock is the backstop for a slow-cycle overrun. -->
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict><key>Minute</key><integer>10</integer></dict>
+        <dict><key>Minute</key><integer>40</integer></dict>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- launchd has a bare PATH; kalshi-cli + python3 live in /opt/homebrew/bin. -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/you/.openclaw/workspace/automations/kalshi-weather/logs/launchd-sync.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/you/.openclaw/workspace/automations/kalshi-weather/logs/launchd-sync.err.log</string>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+
+    <!-- The nightly git backup (bin/backup_workspace.sh) is BACKGROUNDED by sync-live.sh so a hung
+         push can't stall the book sync. Without this key, launchd tears down the job's process group
+         the moment sync-live.sh exits (~1s), so the backup died silently on every :10/:40 slot
+         2026-07-10→12 — it only ever succeeded when run by hand. Keep this key or the backup dies. -->
+    <key>AbandonProcessGroup</key>
+    <true/>
+</dict>
+</plist>

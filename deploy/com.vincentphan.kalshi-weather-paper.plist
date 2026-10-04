@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  PAPER trading-cycle executor for the Kalshi weather trader. Fires run-cycle-detached.sh
+  (NO LIVE=1 → paper arms only) at the hourly :00 slots 06:00–22:00, INDEPENDENT of
+  OpenClaw's cron/gateway. This is the paper analogue of the -live (:20) executor.
+
+  WHY (2026-07-05): the OpenClaw "Kalshi Weather Paper ($5K)" cron ('0 6-22', agentTurn,
+  model moonshot/kimi-k2.6) hit 29 CONSECUTIVE errors — "All models failed: moonshot/
+  kimi-k2.6 in cooldown (billing) | yunwu-deepseek/deepseek-v4-flash 403 quota (auth)".
+  The agent-turn can't even start, so it never invokes the cycle script and the paper
+  cadence went dark from ~07-04 (the cadence watchdog fired). The cycle itself is a
+  DETERMINISTIC script that needs no LLM — the agent-turn wrapper only existed to invoke
+  it and post a Slack summary. launchd invokes it directly, so the paper cadence no longer
+  depends on any model/provider billing — exactly why the LIVE (:20) and sync (:10/:40)
+  jobs were already moved to launchd. The OpenClaw paper cron is KEPT as a redundant
+  trigger + reporter: run-cycle.sh's .cycle.lock dedupes whoever fires the same :00 slot
+  second (same pattern that protects the LIVE :20 slot), so no double-cycle.
+
+  To activate:
+    cp deploy/com.vincentphan.kalshi-weather-paper.plist ~/Library/LaunchAgents/
+    launchctl load  ~/Library/LaunchAgents/com.vincentphan.kalshi-weather-paper.plist
+  To stop / remove:
+    launchctl unload ~/Library/LaunchAgents/com.vincentphan.kalshi-weather-paper.plist
+  Test-fire once (off-slot; harmless — no real orders):
+    launchctl start com.vincentphan.kalshi-weather-paper
+  Verify it fired:  grep 'cycle start' logs/cycle-<date>.log   (a :00 marker)
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.vincentphan.kalshi-weather-paper</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/you/.openclaw/workspace/automations/kalshi-weather/run-cycle-detached.sh</string>
+    </array>
+
+    <!-- Hourly on the hour, 06:00–22:00 (matches the OpenClaw cron '0 6-22 * * *'
+         America/Los_Angeles; launchd StartCalendarInterval uses system local time = PT). -->
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict><key>Hour</key><integer>6</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>7</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>11</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>12</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>13</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>15</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>16</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>17</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>18</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>19</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>20</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>21</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>22</integer><key>Minute</key><integer>0</integer></dict>
+    </array>
+
+    <!-- Do NOT fire on load/boot: a cycle should only run on a scheduled slot (mirrors the
+         LIVE executor). The .cycle.lock still dedupes any overlap if a cycle is mid-flight. -->
+    <key>RunAtLoad</key>
+    <false/>
+
+    <!-- launchd has a bare PATH; kalshi-cli + python3 live in /opt/homebrew/bin.
+         NO LIVE var → run_variants runs PAPER arms only (the live arm is gated on LIVE=1). -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/you/.openclaw/workspace/automations/kalshi-weather/logs/launchd-paper.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/you/.openclaw/workspace/automations/kalshi-weather/logs/launchd-paper.err.log</string>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+</dict>
+</plist>

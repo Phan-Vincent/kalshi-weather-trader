@@ -1,0 +1,40 @@
+# ── Scratch / Test Artifacts ──────────────────────────────────────────
+# Never commit temporary test outputs, diagnostics, or ad-hoc backups
+.openclaw*
+*.bak
+*.tmp
+
+# ── Python Caches ────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# ── One-off diagnostic scripts (move to .openclaw/tmp if needed) ─────
+tmp_audit*.py
+probe_*.py
+debug_*.py
+
+# ── Test outputs that should land in .openclaw/tmp, not root ────────
+test-output*
+*.test.json
+*.test.err
+
+# ── P0a CRN per-cycle book snapshots (transient, one file per cron cycle) ─────
+state/_shared/
+book-cache-*.json
+
+# ── Runtime data (live positions, trade history, logs) — never publish ──
+state/
+logs/
+cache/
+postmortems/
+reviews/
+fair-values*.json
+dashboard/data*.json
+dashboard/ab-data.json
+dashboard/live-history.json
+dashboard-modern/data/data*.json
+.DS_Store
+.env*
+*.pem

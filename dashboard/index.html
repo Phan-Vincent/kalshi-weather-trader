@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kalshi Weather Trader</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#08090d;--bg1:#0d0f15;--bg2:#12141c;--bg3:#181b25;--bg4:#20232f;
+  --border:#1c1f2a;--border2:#2a2e3d;--border3:#363b4d;
+  --text:#eceef4;--text2:#9095aa;--text3:#5b6076;--muted:#454a5e;
+  --green:#12d693;--green-d:#0b8f63;--red:#ff5470;--red-d:#c73a53;
+  --blue:#4d9eff;--blue-d:#2f6fcc;--purple:#a970ff;--purple-l:#c9a4ff;
+  --amber:#f5a623;--cyan:#28d9e6;--pink:#f472b6;
+  --g-brand:linear-gradient(135deg,#a970ff,#4d9eff);
+  --shadow:0 2px 12px rgba(0,0,0,0.35);
+  --r:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',system-ui,sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;
+  background-image:
+    radial-gradient(ellipse 60% 45% at 15% -5%,rgba(169,112,255,0.08),transparent 55%),
+    radial-gradient(ellipse 50% 40% at 90% 105%,rgba(77,158,255,0.06),transparent 55%);
+  background-attachment:fixed;-webkit-font-smoothing:antialiased;line-height:1.4;
+}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.mono{font-family:'SF Mono','JetBrains Mono',ui-monospace,monospace}
+
+/* ── Header ── */
+.top{
+  display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;
+  padding:16px 26px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;
+  background:rgba(8,9,13,0.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+}
+.brand{display:flex;align-items:center;gap:13px}
+.brand-icon{
+  width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+  background:var(--g-brand);font-size:19px;box-shadow:0 4px 18px rgba(169,112,255,0.32);
+}
+.brand h1{font-size:18px;font-weight:700;letter-spacing:-0.4px}
+.brand h1 span{background:linear-gradient(135deg,var(--purple-l),var(--blue));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.badge{font-size:9.5px;font-weight:700;padding:3px 8px;border-radius:5px;letter-spacing:0.4px;text-transform:uppercase;white-space:nowrap}
+.badge-v{background:rgba(169,112,255,0.12);color:var(--purple-l);border:1px solid rgba(169,112,255,0.22)}
+.status{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:6px 11px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);white-space:nowrap}
+.pill .k{color:var(--text3);font-weight:600;font-size:9.5px;text-transform:uppercase;letter-spacing:0.4px}
+.pill.live{border-color:rgba(18,214,147,0.28)}
+.pill.live.off{border-color:rgba(255,84,112,0.28)}
+.pill.paper{border-color:rgba(77,158,255,0.24)}
+.pill.gate-g{border-color:rgba(18,214,147,0.3);background:rgba(18,214,147,0.06)}
+.pill.gate-y{border-color:rgba(245,166,35,0.3);background:rgba(245,166,35,0.06)}
+.pill.gate-r{border-color:rgba(255,84,112,0.3);background:rgba(255,84,112,0.06)}
+.dot{width:7px;height:7px;border-radius:50%;flex:none}
+.dot.g{background:var(--green);box-shadow:0 0 7px rgba(18,214,147,0.6)}
+.dot.a{background:var(--amber);box-shadow:0 0 7px rgba(245,166,35,0.5)}
+.dot.r{background:var(--red);box-shadow:0 0 7px rgba(255,84,112,0.5)}
+.dot.pulse{animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
+.refresh{display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;background:var(--bg2);border:1px solid var(--border2);color:var(--text2);font-size:11px;font-family:inherit;cursor:pointer;transition:.15s}
+.refresh:hover{background:var(--bg3);color:var(--text);border-color:var(--border3)}
+.refresh:active{transform:scale(0.96)}
+#ts{font-size:10.5px;color:var(--text3)}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:2px;margin:14px 22px 0;padding:4px;background:var(--bg1);border-radius:12px;border:1px solid var(--border);width:fit-content;max-width:calc(100% - 44px);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:8px 15px;border-radius:9px;font-size:12px;font-weight:600;color:var(--text2);border:none;background:none;cursor:pointer;transition:.15s;font-family:inherit;white-space:nowrap}
+.tab:hover{color:var(--text);background:rgba(255,255,255,0.03)}
+.tab.active{background:var(--g-brand);color:#fff;box-shadow:0 2px 14px rgba(169,112,255,0.3)}
+
+.main{padding:18px 26px 48px;max-width:1600px;margin:0 auto}
+.section{display:none}.section.active{display:block;animation:fade .28s ease}
+@keyframes fade{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+
+/* ── Callout ── */
+.callout{display:flex;gap:12px;align-items:flex-start;padding:13px 16px;border-radius:12px;font-size:12.5px;line-height:1.55;margin-bottom:18px;border:1px solid}
+.callout .ci{font-size:16px;line-height:1;margin-top:1px}
+.callout.warn{background:rgba(245,166,35,0.06);border-color:rgba(245,166,35,0.22);color:#f8d9a0}
+.callout.warn b{color:#ffd98a}
+.callout.info{background:rgba(77,158,255,0.05);border-color:rgba(77,158,255,0.2);color:var(--text2)}
+
+/* ── Hero ── */
+.hero-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:13px;margin-bottom:8px}
+.hero{padding:17px 18px;border-radius:var(--r);border:1px solid var(--border);background:linear-gradient(155deg,var(--bg2),var(--bg1));position:relative;overflow:hidden;transition:.25s}
+.hero::before{content:'';position:absolute;inset:0 0 auto 0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.07),transparent)}
+.hero:hover{border-color:var(--border2);transform:translateY(-2px)}
+.hero .lab{font-size:9.5px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);font-weight:700;display:flex;align-items:center;gap:6px}
+.hero .val{font-size:27px;font-weight:750;letter-spacing:-1px;line-height:1.05;margin-top:9px}
+.hero .sub{font-size:11px;color:var(--text2);margin-top:7px;line-height:1.4}
+.hero .spark{position:absolute;right:14px;bottom:12px;opacity:0.85;pointer-events:none}
+.hero.real{border-color:rgba(18,214,147,0.28);background:linear-gradient(155deg,rgba(18,214,147,0.06),var(--bg1))}
+.hero.real .lab{color:var(--green)}
+.tag{font-size:8.5px;font-weight:800;letter-spacing:0.5px;padding:2px 6px;border-radius:4px;text-transform:uppercase}
+.tag.real{background:rgba(18,214,147,0.14);color:var(--green)}
+.tag.paper{background:rgba(77,158,255,0.14);color:var(--blue)}
+.g{color:var(--green)}.r{color:var(--red)}.b{color:var(--blue)}.p{color:var(--purple-l)}.a{color:var(--amber)}.c{color:var(--cyan)}.dim{color:var(--text3)}
+
+/* ── Section title ── */
+.st{font-size:10.5px;text-transform:uppercase;letter-spacing:1.4px;color:var(--text3);font-weight:700;margin:24px 0 12px;display:flex;align-items:center;gap:9px}
+.st::before{content:'';width:3px;height:13px;border-radius:2px;background:var(--g-brand)}
+.st .note{font-weight:500;letter-spacing:0;text-transform:none;color:var(--muted);font-size:11px}
+
+/* ── Grids & cards ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}
+@media(max-width:1000px){.g3,.g4{grid-template-columns:1fr 1fr}}
+@media(max-width:680px){.g2,.g3,.g4{grid-template-columns:1fr}.main{padding:16px 16px 40px}.tabs{margin:14px 16px 0}.top{padding:14px 16px}}
+.card{border-radius:var(--r);border:1px solid var(--border);background:linear-gradient(155deg,var(--bg2),var(--bg1));padding:18px;position:relative;overflow:hidden;transition:.25s}
+.card::before{content:'';position:absolute;inset:0 0 auto 0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.04),transparent)}
+.card:hover{border-color:var(--border2)}
+.ch{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
+.ch .cl{display:flex;align-items:center;gap:8px}
+.ch h3{font-size:10px;text-transform:uppercase;letter-spacing:1.1px;color:var(--text3);font-weight:700}
+.ch .hint{font-size:10px;color:var(--muted);font-weight:500}
+.cdot{width:6px;height:6px;border-radius:50%}
+.cdot.g{background:var(--green)}.cdot.r{background:var(--red)}.cdot.b{background:var(--blue)}.cdot.p{background:var(--purple)}.cdot.a{background:var(--amber)}.cdot.c{background:var(--cyan)}
+.cwrap{position:relative;height:230px}
+.cwrap.sm{height:180px}.cwrap.lg{height:300px}
+.cwrap canvas{position:absolute;inset:0}
+
+/* ── Info grid ── */
+.ig{display:grid;grid-template-columns:1fr;gap:1px;font-size:12.5px}
+.ig.two{grid-template-columns:1fr 1fr;gap:1px 22px}
+.ir{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.02)}
+.ir .k{color:var(--text3)}.ir .v{font-weight:650}
+.vg{color:var(--green)}.vr{color:var(--red)}.vb{color:var(--blue)}.vp{color:var(--purple-l)}.va{color:var(--amber)}
+
+/* ── Gate chip ── */
+.gate{padding:9px 13px;border-radius:9px;font-size:11.5px;font-weight:700;text-align:center;margin-bottom:11px}
+.gate-ok{background:rgba(18,214,147,0.08);color:var(--green);border:1px solid rgba(18,214,147,0.18)}
+.gate-warn{background:rgba(245,166,35,0.08);color:var(--amber);border:1px solid rgba(245,166,35,0.18)}
+.gate-bad{background:rgba(255,84,112,0.08);color:var(--red);border:1px solid rgba(255,84,112,0.18)}
+
+/* ── Table ── */
+.scroll-x{overflow-x:auto}.scroll-x::-webkit-scrollbar{height:5px}.scroll-x::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+th{text-align:left;padding:8px 10px;color:var(--text3);font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:0.7px;border-bottom:1px solid var(--border2);position:sticky;top:0;background:var(--bg2);white-space:nowrap}
+td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,0.02);white-space:nowrap}
+tbody tr:hover{background:rgba(255,255,255,0.018)}
+.tbl-scroll{max-height:520px;overflow-y:auto}
+.tbl-scroll::-webkit-scrollbar{width:6px}.tbl-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+.chip{display:inline-block;padding:1.5px 6px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:0.3px}
+.chip.live{background:rgba(18,214,147,0.14);color:var(--green)}
+.chip.paper{background:rgba(77,158,255,0.14);color:var(--blue)}
+.chip.yes{background:rgba(18,214,147,0.12);color:var(--green)}
+.chip.no{background:rgba(255,84,112,0.12);color:var(--red)}
+
+/* ── Select ── */
+.sel{background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:7px;font-size:11px;font-family:inherit;cursor:pointer}
+.sel:hover{border-color:var(--border3)}.sel:focus{outline:none;border-color:var(--purple)}
+
+/* ── City grid ── */
+.city-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:9px}
+.cc{padding:13px;border-radius:11px;background:var(--bg2);border:1px solid var(--border);text-align:center;transition:.18s;position:relative}
+.cc:hover{transform:translateY(-1px);border-color:var(--border2)}
+.cc .code{font-weight:750;font-size:14px}
+.cc .pnl{font-size:13px;font-weight:700;margin-top:2px}
+.cc .meta{font-size:9.5px;color:var(--text3);margin-top:4px}
+.cc.halt{border-color:rgba(255,84,112,0.35);background:rgba(255,84,112,0.05)}
+.cc.halt::after{content:'HALT';position:absolute;top:6px;right:7px;font-size:7.5px;font-weight:800;color:var(--red);letter-spacing:0.5px}
+
+/* ── Misc ── */
+.empty{text-align:center;padding:38px;color:var(--muted);font-size:13px}
+.empty .ei{font-size:30px;margin-bottom:8px;opacity:0.45}
+.bar-row{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11.5px}
+.bar-row .bl{width:42px;color:var(--text2);font-weight:600}
+.bar-track{flex:1;height:7px;border-radius:4px;background:var(--bg3);overflow:hidden}
+.bar-fill{height:100%;border-radius:4px}
+.bar-row .bv{width:64px;text-align:right;font-weight:650}
+.pos-edge{font-weight:700}
+.links a{color:var(--blue);text-decoration:none;display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px;transition:.12s}
+.links a:hover{color:var(--blue-d);transform:translateX(2px)}
+a.doc{color:var(--text2);text-decoration:none;display:block;padding:4px 0;font-size:12px;transition:.12s}
+a.doc:hover{color:var(--text)}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="brand">
+    <div class="brand-icon">⛅</div>
+    <h1>Kalshi <span>Weather</span> Trader</h1>
+    <span class="badge badge-v">v5</span>
+  </div>
+  <div class="status">
+    <span class="pill live off" id="pill-live"><span class="dot r pulse"></span><span class="k">Live</span> <span id="pill-live-v">—</span></span>
+    <span class="pill paper" id="pill-paper"><span class="k">Paper*</span> <span id="pill-paper-v">—</span></span>
+    <span class="pill gate-y" id="pill-gate"><span class="k">BSS</span> <span id="pill-gate-v">—</span></span>
+    <span class="pill" id="pill-fresh" title="Data feed freshness"><span class="dot g" id="fresh-dot"></span><span id="ts">…</span></span>
+    <button class="refresh" onclick="loadAll()">↻</button>
+  </div>
+</div>
+
+<div class="tabs" id="tabs">
+  <button class="tab active" data-tab="overview">Overview</button>
+  <button class="tab" data-tab="live">Live $</button>
+  <button class="tab" data-tab="paper">Paper</button>
+  <button class="tab" data-tab="edge">Edge</button>
+  <button class="tab" data-tab="abtests">A/B Arms</button>
+  <button class="tab" data-tab="models">Model</button>
+  <button class="tab" data-tab="cities">Cities</button>
+  <button class="tab" data-tab="settlements">Settlements</button>
+  <button class="tab" data-tab="risk">Risk</button>
+  <button class="tab" data-tab="system">System</button>
+</div>
+
+<div class="main">
+
+<!-- OVERVIEW -->
+<div class="section active" id="sec-overview">
+  <div id="dq-callout"></div>
+  <div class="hero-grid" id="hero-overview"></div>
+  <div class="st">Equity <span class="note">— real live portfolio vs. paper cumulative (leak-aware)</span></div>
+  <div class="g2">
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot g"></span><h3>Live Portfolio — Real $</h3></div><span class="hint" id="live-curve-hint"></span></div><div class="cwrap"><canvas id="chLiveCurve"></canvas></div></div>
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot b"></span><h3>Paper Cumulative P&amp;L</h3></div><span class="hint">amber = pre-6/29 leak · blue = clean</span></div><div class="cwrap"><canvas id="chPaperCum"></canvas></div></div>
+  </div>
+  <div class="st">Today &amp; Trailing</div>
+  <div class="g4" id="mini-overview"></div>
+</div>
+
+<!-- LIVE -->
+<div class="section" id="sec-live">
+  <div class="hero-grid" id="hero-live"></div>
+  <div class="g2" style="margin-top:8px">
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot g"></span><h3>Portfolio Value (72h)</h3></div><span class="hint">total · available</span></div><div class="cwrap"><canvas id="chLivePV"></canvas></div></div>
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot b"></span><h3>Capital Allocation</h3></div></div><div class="cwrap"><canvas id="chLiveAlloc"></canvas></div></div>
+  </div>
+  <div class="g2" style="margin-top:13px">
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot c"></span><h3>Live Summary</h3></div></div><div id="liveSum"></div></div>
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot a"></span><h3>Upcoming Expirations</h3></div><span class="hint" id="expHint"></span></div><div id="liveExp"></div></div>
+  </div>
+  <div class="card" style="margin-top:13px"><div class="ch"><div class="cl"><span class="cdot p"></span><h3>Open Live Positions</h3></div><span class="hint" id="livePosHint"></span></div><div class="scroll-x"><table><thead><tr><th>Ticker</th><th>Side</th><th style="text-align:right">Qty</th><th style="text-align:right">Entry</th><th style="text-align:right">Cost</th><th style="text-align:right">Unreal</th><th>Settles</th></tr></thead><tbody id="livePosBody"></tbody></table></div></div>
+</div>
+
+<!-- PAPER -->
+<div class="section" id="sec-paper">
+  <div class="hero-grid" id="hero-paper"></div>
+  <div class="callout info" style="margin-top:14px"><span class="ci">ℹ️</span><div>Paper trades the same live order books as the real account but with idealized fills. Numbers here are directional, not bankable — the <b class="g">Live $</b> tab is the ground truth.</div></div>
+  <div class="g2">
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot g"></span><h3>Daily P&amp;L</h3></div></div><div class="cwrap"><canvas id="chDaily"></canvas></div></div>
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot b"></span><h3>Wins vs Losses / Day</h3></div></div><div class="cwrap"><canvas id="chWL"></canvas></div></div>
+  </div>
+  <div class="g2" style="margin-top:13px">
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot p"></span><h3>Weekly P&amp;L</h3></div></div><div class="cwrap sm"><canvas id="chWeekly"></canvas></div></div>
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot a"></span><h3>Monthly P&amp;L</h3></div></div><div class="cwrap sm"><canvas id="chMonthly"></canvas></div></div>
+  </div>
+  <div class="g2" style="margin-top:13px">
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot c"></span><h3>Rolling 10‑Trade Win Rate</h3></div></div><div class="cwrap"><canvas id="chRWR"></canvas></div></div>
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot g"></span><h3>Paper Summary</h3></div></div><div id="paperSum"></div></div>
+  </div>
+</div>
+
+<!-- EDGE -->
+<div class="section" id="sec-edge">
+  <div class="callout info"><span class="ci">🎯</span><div>Where does edge come from? Entry-price buckets reveal the cheap-longshot behaviour; side bias and maker-fill quality show execution reality. Paper sample — fills are optimistic vs live, and $ totals include pre-6/29 leaked trades (win% is the cleaner read).</div></div>
+  <div class="g2">
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot p"></span><h3>P&amp;L by Entry-Price Bucket</h3></div><span class="hint">bar = P&amp;L · line = win%</span></div><div class="cwrap"><canvas id="chBuckets"></canvas></div></div>
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot c"></span><h3>P&amp;L by Hour (UTC)</h3></div></div><div class="cwrap"><canvas id="chHourly"></canvas></div></div>
+  </div>
+  <div class="g2" style="margin-top:13px">
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot a"></span><h3>Side Bias — YES vs NO</h3></div><span class="hint">from settled paper trades</span></div><div id="sideBias"></div></div>
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot b"></span><h3>Maker Fill Funnel (all arms)</h3></div></div><div class="scroll-x"><table><thead><tr><th>Arm</th><th style="text-align:right">Posted</th><th style="text-align:right">Filled</th><th style="text-align:right">Expired</th><th style="text-align:right">Fill%</th></tr></thead><tbody id="edgeFunnel"></tbody></table></div></div>
+  </div>
+</div>
+
+<!-- A/B TESTS -->
+<div class="section" id="sec-abtests">
+  <div class="hero-grid" id="hero-abtests"></div>
+  <div class="callout info" style="margin-top:14px"><span class="ci">🧪</span><div>Parallel paper books trading the <b>same live order books</b> with different config. <b>¢/contract CI</b> = bootstrap 95% CI of per-trade P&amp;L; <b class="g">✓</b> = edge distinguishable from zero. Caveat: the real statistical unit is the <b>event</b> (~60), not the trade — treat single-arm significance with skepticism. <span id="abUpd" class="dim"></span></div></div>
+  <div class="card">
+    <div class="scroll-x"><table>
+      <thead><tr><th>Arm</th><th style="text-align:right">Trades</th><th style="text-align:right">Realized</th><th style="text-align:right">Return</th><th style="text-align:right">Win%</th><th style="text-align:right">Open</th><th style="text-align:right">Fill%</th><th style="text-align:right">¢/contract (95% CI)</th><th style="text-align:right">Brier</th><th style="text-align:right">BSS</th></tr></thead>
+      <tbody id="abBody"></tbody>
+    </table></div>
+  </div>
+  <div class="card" style="margin-top:13px"><div class="ch"><div class="cl"><span class="cdot p"></span><h3>Cumulative Realized P&amp;L by Arm</h3></div></div><div class="cwrap lg"><canvas id="chABeq"></canvas></div></div>
+</div>
+
+<!-- MODELS -->
+<div class="section" id="sec-models">
+  <div class="hero-grid" id="hero-models"></div>
+  <div class="g2" style="margin-top:8px">
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot p"></span><h3>Calibration Curve</h3></div><span class="hint">bubble = sample size</span></div><div class="cwrap"><canvas id="chCalib"></canvas></div></div>
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot b"></span><h3>Brier: Model vs Market</h3></div><span class="hint">rolling per settled trade</span></div><div class="cwrap"><canvas id="chBrier"></canvas></div></div>
+  </div>
+  <div class="g3" style="margin-top:13px">
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot r"></span><h3>BSS Gate</h3></div></div><div id="brierGate"></div></div>
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot a"></span><h3>Reliability (predicted vs actual)</h3></div></div><div id="reliab"></div></div>
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot c"></span><h3>Side Accuracy</h3></div></div><div id="sideAcc"></div></div>
+  </div>
+  <div class="card" style="margin-top:13px"><div class="ch"><div class="cl"><span class="cdot g"></span><h3>Calibration by Bucket</h3></div><span class="hint">predicted vs realized outcome %</span></div><div class="cwrap"><canvas id="chCalibDet"></canvas></div></div>
+</div>
+
+<!-- CITIES -->
+<div class="section" id="sec-cities">
+  <div class="g2">
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot p"></span><h3>City P&amp;L</h3></div></div><div class="cwrap lg"><canvas id="chCityPnL"></canvas></div></div>
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot b"></span><h3>City Win Rate</h3></div></div><div class="cwrap lg"><canvas id="chCityWR"></canvas></div></div>
+  </div>
+  <div class="g2" style="margin-top:13px">
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot r"></span><h3>Consecutive Losses</h3></div><span class="hint">CB halts at 8</span></div><div class="cwrap"><canvas id="chCityStk"></canvas></div></div>
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot a"></span><h3>Trade Count</h3></div></div><div class="cwrap"><canvas id="chCityCnt"></canvas></div></div>
+  </div>
+  <div class="card" style="margin-top:13px"><div class="ch"><div class="cl"><span class="cdot c"></span><h3>Circuit Breakers</h3></div></div><div id="cbDet"></div></div>
+  <div class="st">City Matrix</div>
+  <div class="city-grid" id="cityMtx"></div>
+</div>
+
+<!-- SETTLEMENTS -->
+<div class="section" id="sec-settlements">
+  <div class="hero-grid" id="hero-settlements"></div>
+  <div class="card" style="margin-top:8px;margin-bottom:13px">
+    <div class="ch"><div class="cl"><span class="cdot g"></span><h3>Settlement Ledger</h3></div>
+      <div style="display:flex;gap:8px">
+        <select class="sel" id="setFltr" onchange="renderSet()"><option value="all">All</option><option value="paper">Paper</option><option value="live">Live</option></select>
+        <select class="sel" id="setSort" onchange="renderSet()"><option value="date-desc">Newest</option><option value="date-asc">Oldest</option><option value="pnl-desc">Best P&amp;L</option><option value="pnl-asc">Worst P&amp;L</option></select>
+      </div>
+    </div>
+    <div class="scroll-x tbl-scroll"><table><thead><tr><th>Acct</th><th>Ticker</th><th>Side</th><th style="text-align:right">Qty</th><th style="text-align:right">Entry</th><th style="text-align:right">Realized</th><th>Settled</th></tr></thead><tbody id="setBody"></tbody></table></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot g"></span><h3>Realized P&amp;L by Day</h3></div></div><div class="cwrap"><canvas id="chSetDay"></canvas></div></div>
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot p"></span><h3>Realized P&amp;L by Side</h3></div></div><div class="cwrap sm"><canvas id="chSetSide"></canvas></div></div>
+  </div>
+</div>
+
+<!-- RISK -->
+<div class="section" id="sec-risk">
+  <div class="hero-grid" id="hero-risk"></div>
+  <div class="g2" style="margin-top:8px">
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot r"></span><h3>Drawdown Over Time</h3></div></div><div class="cwrap"><canvas id="chDD"></canvas></div></div>
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot c"></span><h3>Avg Entry Price Trend</h3></div></div><div class="cwrap"><canvas id="chPSize"></canvas></div></div>
+  </div>
+  <div class="g2" style="margin-top:13px">
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot b"></span><h3>P&amp;L Concentration</h3></div><span class="hint">Lorenz — how few trades drive P&amp;L</span></div><div class="cwrap"><canvas id="chConc"></canvas></div></div>
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot a"></span><h3>Loss-Streak Distribution</h3></div></div><div class="cwrap"><canvas id="chStreak"></canvas></div></div>
+  </div>
+  <div class="card" style="margin-top:13px"><div class="ch"><div class="cl"><span class="cdot r"></span><h3>Risk Limits &amp; State</h3></div></div><div id="riskDash"></div></div>
+</div>
+
+<!-- SYSTEM -->
+<div class="section" id="sec-system">
+  <div class="hero-grid" id="hero-system"></div>
+  <div class="g2" style="margin-top:8px">
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot g"></span><h3>Data Feed Health</h3></div></div><div id="feedHealth"></div></div>
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot a"></span><h3>System Snapshot</h3></div></div><div id="sysSnap"></div></div>
+  </div>
+  <div class="g2" style="margin-top:13px">
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot p"></span><h3>Documents</h3></div></div><div id="docLinks"></div></div>
+    <div class="card"><div class="ch"><div class="cl"><span class="cdot b"></span><h3>Quick Links</h3></div></div>
+      <div class="links">
+        <a href="https://kalshi.com/markets/kxhighny" target="_blank">🌤 Kalshi Weather Markets</a>
+        <a href="https://open-meteo.com/" target="_blank">🌐 Open-Meteo API</a>
+        <a href="https://api.weather.gov/" target="_blank">🏛 NWS API</a>
+        <a href="https://nomads.ncep.noaa.gov/" target="_blank">📡 NOAA GEFS / NOMADS</a>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:13px"><div class="ch"><div class="cl"><span class="cdot c"></span><h3>Model Changelog</h3></div></div><div id="changelog"></div></div>
+</div>
+
+</div>
+
+<script>
+let L={}, P={}, AB={arms:[],updated_at:''}, HIST=[];
+let charts={};
+const FEEDS={data:{t:null},live:{t:null},ab:{t:null}};
+
+const $=id=>document.getElementById(id);
+const num=n=>Number(n||0);
+const fmt$=n=>{const v=num(n);return (v>=0?'+':'−')+'$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})};
+const usd=n=>'$'+num(n).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});
+const usd2=n=>'$'+num(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const pct=n=>num(n).toFixed(1)+'%';
+const spct=n=>{const v=num(n);return (v>=0?'+':'')+v.toFixed(1)+'%'};
+const clr=v=>num(v)>=0?'var(--green)':'var(--red)';
+const clsPL=v=>num(v)>=0?'g':'r';
+const fmtDate=d=>String(d||'').replace('2026-','').replace('-','/');
+const cityFromTicker=t=>(t||'').match(/KX(?:HIGH|LOW)T?([A-Z]+)/)?.[1]||'?';
+function fmtSettle(iso,ticker){if(iso){const d=new Date(iso);if(!isNaN(d))return d.toLocaleDateString('en-US',{month:'short',day:'numeric'})}const m=String(ticker||'').match(/-(\d{2})([A-Z]{3})(\d{2})-/);if(m)return m[2][0]+m[2].slice(1).toLowerCase()+' '+parseInt(m[3]);return '—'}
+
+// mini sparkline SVG
+function spark(vals,w=88,h=26,color='#12d693'){
+  if(!vals||vals.length<2)return '';
+  const mn=Math.min(...vals),mx=Math.max(...vals),rng=(mx-mn)||1;
+  const pts=vals.map((v,i)=>`${(i/(vals.length-1)*w).toFixed(1)},${(h-((v-mn)/rng)*h).toFixed(1)}`).join(' ');
+  const last=vals[vals.length-1],first=vals[0];const c=last>=first?color:'#ff5470';
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${pts}" fill="none" stroke="${c}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/></svg>`;
+}
+
+// ── Chart.js theming ──
+function themeCharts(){if(window.Chart){Chart.defaults.color='#5b6076';Chart.defaults.font.family="-apple-system,'SF Pro Display',sans-serif";Chart.defaults.font.size=10;Chart.defaults.borderColor='rgba(255,255,255,0.02)'}}
+function opts(e={}){return{responsive:true,maintainAspectRatio:false,animation:{duration:400,easing:'easeOutQuart'},
+  plugins:{legend:{labels:{color:'#9095aa',font:{size:10},boxWidth:9,padding:9,usePointStyle:true,pointStyle:'circle'}},
+    tooltip:{backgroundColor:'#12141c',titleColor:'#eceef4',bodyColor:'#9095aa',borderColor:'#2a2e3d',borderWidth:1,cornerRadius:8,displayColors:false,padding:10,titleFont:{size:11},bodyFont:{size:11}}},
+  scales:{x:{ticks:{color:'#454a5e',font:{size:9},maxTicksLimit:11},grid:{color:'rgba(255,255,255,0.02)',drawTicks:false}},
+    y:{ticks:{color:'#454a5e',font:{size:9}},grid:{color:'rgba(255,255,255,0.025)',drawTicks:false}}},
+  interaction:{intersect:false,mode:'index'},...e}}
+function grad(ctx,hex,a1=0.22,a2=0){const g=ctx.createLinearGradient(0,0,0,240);g.addColorStop(0,hexA(hex,a1));g.addColorStop(1,hexA(hex,a2));return g}
+function hexA(h,a){const n=parseInt(h.slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`}
+function kill(keys){keys.forEach(k=>{if(charts[k]){charts[k].destroy();delete charts[k]}})}
+function mk(id,cfg){const el=$(id);if(!el)return;const ctx=el.getContext('2d');charts[id]=new Chart(ctx,cfg)}
+const C={green:'#12d693',red:'#ff5470',blue:'#4d9eff',purple:'#a970ff',amber:'#f5a623',cyan:'#28d9e6'};
+const barPL=arr=>arr.map(v=>v>=0?hexA(C.green,0.62):hexA(C.red,0.62));
+
+// ── Load ──
+async function loadAll(){
+  const t=Date.now();
+  try{
+    const[rL,rP]=await Promise.all([fetch('data-live.json?'+t),fetch('data.json?'+t)]);
+    L=await rL.json();FEEDS.live.t=L.updated_at;
+    const rawP=await rP.json();P=rawP;P.settlements=rawP.settlements||[];P.positions=rawP.positions||[];FEEDS.data.t=P.updated_at;
+  }catch(e){console.error('core feed',e);$('ts').textContent='⚠ error'}
+  try{const rH=await fetch('live-history.json?'+t);const h=await rH.json();if(Array.isArray(h)){HIST=h;L.history=h}}catch(e){}
+  try{const rAB=await fetch('ab-data.json?'+t);AB=await rAB.json();FEEDS.ab.t=AB.updated_at}catch(e){AB={arms:[],updated_at:''}}
+  $('ts').textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  updateHeader();renderAll();
+}
+
+function feedAgeMin(iso){if(!iso)return null;const ms=Date.now()-new Date(iso).getTime();return ms/60000}
+function freshClass(m){if(m==null)return 'a';if(m<20)return 'g';if(m<75)return 'a';return 'r'}
+
+function updateHeader(){
+  const liveTot=num(L.weather_total_dollars),lp=num(L.weather_pnl_dollars);
+  const liveOn=(L.open_positions||[]).length>0||num(L.weather_deployed_dollars)!==0;
+  const pl=$('pill-live');pl.className='pill live'+(liveOn?'':' off');
+  pl.querySelector('.dot').className='dot '+(liveOn?(lp>=0?'g':'r'):'r')+' pulse';
+  $('pill-live-v').innerHTML=`${usd(liveTot)} <span class="${clsPL(lp)}">${spct(L.weather_pnl_pct)}</span>`;
+  // paper = leak-free honest number
+  const lf=num(P.pnl_leakfree);
+  $('pill-paper-v').innerHTML=`<span class="${clsPL(lf)}">${fmt$(lf)}</span>`;
+  // gate
+  const bss=num(P.bss_all),bn=num(P.brier_settled);
+  const gp=$('pill-gate');let gc='y',gt=bss.toFixed(3);
+  if(bn>=150){gc=bss>0.05?'g':bss>-0.1?'y':'r'}else{gc=bss>0?'y':'r'}
+  gp.className='pill gate-'+gc;$('pill-gate-v').innerHTML=`<span class="${gc==='g'?'g':gc==='r'?'r':'a'}">${(bss>=0?'+':'')+bss.toFixed(3)}</span>`;
+  // freshness = worst of feeds
+  const ages=[FEEDS.data.t,FEEDS.live.t].map(feedAgeMin).filter(x=>x!=null);
+  const worst=ages.length?Math.max(...ages):null;
+  $('fresh-dot').className='dot '+freshClass(worst);
+  $('pill-fresh').title=`Feeds updated ${worst!=null?Math.round(worst)+'m ago':'—'}`;
+}
+
+// ── Tab routing ──
+const RENDER={overview:rOverview,live:rLive,paper:rPaper,edge:rEdge,abtests:rAB,models:rModels,cities:rCities,settlements:renderSet,risk:rRisk,system:rSystem};
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',function(){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  this.classList.add('active');$('sec-'+this.dataset.tab).classList.add('active');
+  setTimeout(()=>{try{RENDER[this.dataset.tab]()}catch(e){console.error(e)}},60);
+}));
+function renderAll(){const a=document.querySelector('.section.active');if(a){const n=a.id.replace('sec-','');try{RENDER[n]()}catch(e){console.error(e)}}}
+
+// ── helpers on P ──
+function paperCum(){let cum=0;return (P.daily||[]).map(d=>{cum+=num(d.pnl);return cum})}
+function maxDD(){let peak=0,dd=0,cum=0;for(const d of(P.daily||[])){cum+=num(d.pnl);if(cum>peak)peak=cum;const x=peak-cum;if(x>dd)dd=x}return -dd}
+function hero(cls,lab,val,sub,sp=''){return `<div class="hero ${cls}"><div class="lab">${lab}</div><div class="val num">${val}</div><div class="sub">${sub}</div>${sp}</div>`}
+
+// ── OVERVIEW ──
+function rOverview(){
+  const liveTot=num(L.weather_total_dollars),lp=num(L.weather_pnl_dollars),init=num(L.initial_balance_dollars)||500;
+  const lf=num(P.pnl_leakfree),lfN=num(P.trades_leakfree),sf=num(P.pnl_since_fix),sfN=num(P.trades_since_fix);
+  const raw=num(P.total_pnl),bss=num(P.bss_all),bn=num(P.brier_settled);
+  const histTot=HIST.map(h=>h.total);
+  // data-quality callout
+  $('dq-callout').innerHTML=P.data_quality_note?`<div class="callout warn"><span class="ci">⚠️</span><div>${P.data_quality_note}</div></div>`:'';
+  $('hero-overview').innerHTML=
+    hero('real','<span class="tag real">Real $</span> Live Account',
+      usd2(liveTot),`${fmt$(lp)} (${spct(L.weather_pnl_pct)}) from ${usd(init)} · ${(L.open_positions||[]).length} open`,
+      spark(histTot,92,30,C.green))+
+    hero(lf>=0?'':'',`<span class="tag paper">Paper*</span> Honest P&amp;L`,
+      `<span class="${clsPL(lf)}">${fmt$(lf)}</span>`,`leak-free · ${lfN} trades · raw incl. fixed leak: ${fmt$(raw)}`)+
+    hero('',`Model Edge (BSS)`,`<span class="${bss>=0?'g':'r'}">${(bss>=0?'+':'')+bss.toFixed(3)}</span>`,
+      `vs market · ${bn} settled · ${bn>=150?'gate live':'gate @150'}`)+
+    hero('',`Since-Fix Paper`,`<span class="${clsPL(sf)}">${fmt$(sf)}</span>`,`clean window · ${sfN} trades · WR ${pct(P.win_rate_leakfree)}`);
+  // live curve
+  kill(['chLiveCurve','chPaperCum']);
+  const lab=HIST.map(h=>new Date(h.timestamp).toLocaleString('en-US',{month:'numeric',day:'numeric',hour:'2-digit'}));
+  if(HIST.length>1)mk('chLiveCurve',{type:'line',data:{labels:lab,datasets:[{label:'Total $',data:histTot,borderColor:C.green,backgroundColor:c=>grad(c.chart.ctx,'#12d693'),fill:true,tension:0.35,pointRadius:0,borderWidth:2}]},options:opts()});
+  $('live-curve-hint').textContent=HIST.length?`${HIST.length} snapshots`:'';
+  // paper cumulative — split leaked vs clean by date if possible
+  const cum=paperCum(),dl=(P.daily||[]).map(d=>fmtDate(d.date));
+  const fixIdx=(P.daily||[]).findIndex(d=>String(d.date)>='2026-06-29');
+  mk('chPaperCum',{type:'line',data:{labels:dl,datasets:[{label:'Cumulative',data:cum,borderColor:C.blue,backgroundColor:c=>grad(c.chart.ctx,'#4d9eff'),fill:true,tension:0.35,pointRadius:0,borderWidth:2,segment:{borderColor:ctx=>(fixIdx>0&&ctx.p1DataIndex<fixIdx)?C.amber:C.blue}}]},options:opts()});
+  // mini trailing
+  $('mini-overview').innerHTML=
+    hero('','Today (Live)',`<span class="${clsPL(L.today_pnl)}">${fmt$(L.today_pnl)}</span>`,'real account')+
+    hero('','Today (Paper)',`<span class="${clsPL(P.today_pnl)}">${fmt$(P.today_pnl)}</span>`,`${num(P.today_trades)} trades · ${num(P.today_wins)} wins`)+
+    hero('','Paper Week',`<span class="${clsPL(P.current_week_pnl)}">${fmt$(P.current_week_pnl)}</span>`,'rolling 7d')+
+    hero('','Max Drawdown',`<span class="r">${fmt$(maxDD())}</span>`,'paper, peak→trough');
+}
+
+// ── LIVE ──
+function rLive(){
+  const liveTot=num(L.weather_total_dollars),lp=num(L.weather_pnl_dollars),avail=num(L.weather_available_dollars),port=num(L.weather_portfolio_dollars);
+  const pos=L.open_positions||[];
+  $('hero-live').innerHTML=
+    hero('real','<span class="tag real">Real $</span> Total',usd2(liveTot),`${fmt$(lp)} (${spct(L.weather_pnl_pct)})`,spark(HIST.map(h=>h.total),92,30,C.green))+
+    hero('','Available',usd2(avail),'cash on hand')+
+    hero('','Deployed',usd2(L.weather_deployed_dollars),`${pos.length} positions · $${num(L.weather_portfolio_dollars).toFixed(2)} mark`)+
+    hero('',`Streak / Max DD`,`<span class="${L.live_streak_type==='win'?'g':'r'}">${num(L.live_streak_count)}${(L.live_streak_type||'')[0]||''}</span>`,`max DD $${num(L.live_max_drawdown).toFixed(2)} (${pct(L.live_max_drawdown_pct)})`);
+  kill(['chLivePV','chLiveAlloc']);
+  const lab=HIST.map(h=>new Date(h.timestamp).toLocaleString('en-US',{month:'numeric',day:'numeric',hour:'2-digit'}));
+  if(HIST.length>1)mk('chLivePV',{type:'line',data:{labels:lab,datasets:[
+    {label:'Total',data:HIST.map(h=>h.total),borderColor:C.green,backgroundColor:c=>grad(c.chart.ctx,'#12d693'),fill:true,tension:0.35,pointRadius:0,borderWidth:2},
+    {label:'Available',data:HIST.map(h=>h.available),borderColor:C.blue,borderWidth:1.3,pointRadius:0,borderDash:[4,3],tension:0.3}
+  ]},options:opts()});
+  mk('chLiveAlloc',{type:'doughnut',data:{labels:['Available','Deployed (mark)'],datasets:[{data:[avail,port],backgroundColor:[hexA(C.blue,0.75),hexA(C.purple,0.75)],borderColor:'#0d0f15',borderWidth:3}]},options:{...opts(),cutout:'62%',scales:{},plugins:{legend:{position:'bottom',labels:{color:'#9095aa',font:{size:10},boxWidth:9,padding:9,usePointStyle:true}}}}});
+  $('liveSum').innerHTML=`<div class="ig two">
+    <div class="ir"><span class="k">Total</span><span class="v">${usd2(liveTot)}</span></div>
+    <div class="ir"><span class="k">P&amp;L</span><span class="v ${clsPL(lp)}">${fmt$(lp)} (${pct(L.weather_pnl_pct)})</span></div>
+    <div class="ir"><span class="k">Available</span><span class="v vb">${usd2(avail)}</span></div>
+    <div class="ir"><span class="k">Portfolio mark</span><span class="v vp">${usd2(port)}</span></div>
+    <div class="ir"><span class="k">YES positions</span><span class="v vg">${num(L.yes_positions)} · $${num(L.yes_exposure_dollars).toFixed(2)}</span></div>
+    <div class="ir"><span class="k">NO positions</span><span class="v vr">${num(L.no_positions)} · $${num(L.no_exposure_dollars).toFixed(2)}</span></div>
+    <div class="ir"><span class="k">Avg entry</span><span class="v">${num(L.avg_entry_cents).toFixed(1)}¢</span></div>
+    <div class="ir"><span class="k">Resting orders</span><span class="v">${num(L.open_order_count)}</span></div></div>
+    <div class="callout info" style="margin:12px 0 0"><span class="ci">🧮</span><div style="font-size:11.5px">Account also holds <b>${usd2(L.non_weather_cost_dollars)}</b> of non-weather positions (sports/other). Weather-only figures shown above are isolated from that.</div></div>`;
+  // expirations
+  const exp=(L.upcoming_expirations||[]).slice().sort((a,b)=>num(a.hours)-num(b.hours));
+  $('expHint').textContent=`${num(L.upcoming_count)} within window`;
+  $('liveExp').innerHTML=exp.length?`<div style="font-size:11.5px">`+exp.map(e=>{
+    const h=num(e.hours),urgent=h<6;return `<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.02)"><span class="mono" style="font-size:10.5px">${e.ticker}</span><span><span class="chip ${(e.side||'').toLowerCase()}">${(e.side||'').toUpperCase()}</span> ×${e.qty} <span class="${urgent?'a':'dim'}" style="font-weight:650">${h.toFixed(1)}h</span></span></div>`;
+  }).join('')+`</div>`:'<div class="empty"><div class="ei">⏳</div>No upcoming expirations</div>';
+  // positions
+  // Sum only marked rows, and disclose coverage — closed/empty-book positions carry a null
+  // mark (rendered "—"); counting them as $0 would present a partial sum as the full total.
+  const marked=pos.filter(p=>p.unreal_pnl_dollars!=null);
+  $('livePosHint').textContent=`${pos.length} open · unreal ${fmt$(marked.reduce((s,p)=>s+num(p.unreal_pnl_dollars),0))}`+(marked.length<pos.length?` (${marked.length}/${pos.length} marked)`:'');
+  $('livePosBody').innerHTML=pos.length?pos.slice().sort((a,b)=>String(a.close_time||'z').localeCompare(String(b.close_time||'z'))).map(p=>{
+    const u=num(p.unreal_pnl_dollars);return `<tr><td class="mono">${p.ticker}</td><td><span class="chip ${(p.side||'').toLowerCase()}">${(p.side||'').toUpperCase()}</span></td><td style="text-align:right">${p.qty}</td><td style="text-align:right">${p.entry_price_cents}¢</td><td style="text-align:right">${usd2(p.total_cost_dollars)}</td><td style="text-align:right;color:${clr(u)}">${p.unreal_pnl_dollars!=null?fmt$(u):'—'}</td><td class="dim">${fmtSettle(p.close_time,p.ticker)}</td></tr>`;
+  }).join(''):'<tr><td colspan="7"><div class="empty"><div class="ei">💤</div>No open live positions</div></td></tr>';
+}
+
+// ── PAPER ──
+function rPaper(){
+  const lf=num(P.pnl_leakfree),raw=num(P.total_pnl);
+  $('hero-paper').innerHTML=
+    hero('',`<span class="tag paper">Honest</span> Leak-Free P&amp;L`,`<span class="${clsPL(lf)}">${fmt$(lf)}</span>`,`${num(P.trades_leakfree)} trades · WR ${pct(P.win_rate_leakfree)}`)+
+    hero('','Win Rate',pct(P.win_rate),`${num(P.wins)}W / ${num(P.losses)}L · PF ${num(P.profit_factor).toFixed(2)}`)+
+    hero('','Avg Win / Loss',`${usd2(P.avg_win)}`,`/ ${usd2(Math.abs(num(P.avg_loss)))} · exp ${usd2(P.expectancy)}`)+
+    hero('','Raw P&amp;L','<span class="dim">'+fmt$(raw)+'</span>',`⚠ incl. fixed look-ahead leak — do not trust`);
+  kill(['chDaily','chWL','chWeekly','chMonthly','chRWR']);
+  const dl=(P.daily||[]).map(d=>fmtDate(d.date));
+  mk('chDaily',{type:'bar',data:{labels:dl,datasets:[{label:'Daily P&L',data:(P.daily||[]).map(d=>num(d.pnl)),backgroundColor:barPL((P.daily||[]).map(d=>num(d.pnl))),borderRadius:5}]},options:opts()});
+  mk('chWL',{type:'bar',data:{labels:dl,datasets:[
+    {label:'Wins',data:(P.daily||[]).map(d=>num(d.wins)),backgroundColor:hexA(C.green,0.7),borderRadius:4,stack:'s'},
+    {label:'Losses',data:(P.daily||[]).map(d=>num(d.trades)-num(d.wins)),backgroundColor:hexA(C.red,0.4),borderRadius:4,stack:'s'}
+  ]},options:{...opts(),scales:{x:{...opts().scales.x,stacked:true},y:{...opts().scales.y,stacked:true}}}});
+  mk('chWeekly',{type:'bar',data:{labels:(P.weekly||[]).map(w=>w.week.replace('2026-','')),datasets:[{label:'Weekly',data:(P.weekly||[]).map(w=>num(w.pnl)),backgroundColor:barPL((P.weekly||[]).map(w=>num(w.pnl))),borderRadius:6}]},options:opts()});
+  mk('chMonthly',{type:'bar',data:{labels:(P.monthly||[]).map(m=>m.month),datasets:[{label:'Monthly',data:(P.monthly||[]).map(m=>num(m.pnl)),backgroundColor:barPL((P.monthly||[]).map(m=>num(m.pnl))),borderRadius:6}]},options:opts()});
+  const st=P.settlements||[];
+  if(st.length>10){const wr=[];for(let i=9;i<st.length;i++){let w=0;for(let j=i-9;j<=i;j++)w+=num(st[j].pnl_cents)>0?1:0;wr.push(w*10)}
+    mk('chRWR',{type:'line',data:{labels:wr.map((_,i)=>i+10),datasets:[
+      {label:'Rolling WR%',data:wr,borderColor:C.cyan,backgroundColor:c=>grad(c.chart.ctx,'#28d9e6'),fill:true,tension:0.3,pointRadius:0,borderWidth:1.8},
+      {label:'50%',data:wr.map(()=>50),borderColor:'rgba(255,255,255,0.09)',borderWidth:1,borderDash:[4,4],pointRadius:0}
+    ]},options:{...opts(),scales:{...opts().scales,y:{...opts().scales.y,max:100}}}});}
+  $('paperSum').innerHTML=`<div class="ig two">
+    <div class="ir"><span class="k">Leak-free P&amp;L</span><span class="v ${clsPL(lf)}">${fmt$(lf)}</span></div>
+    <div class="ir"><span class="k">Since-fix P&amp;L</span><span class="v ${clsPL(P.pnl_since_fix)}">${fmt$(P.pnl_since_fix)}</span></div>
+    <div class="ir"><span class="k">Total trades</span><span class="v vb">${num(P.total_trades)}</span></div>
+    <div class="ir"><span class="k">Settlements</span><span class="v vb">${st.length}</span></div>
+    <div class="ir"><span class="k">Profit factor</span><span class="v ${num(P.profit_factor)>=1?'vg':'vr'}">${num(P.profit_factor).toFixed(2)}</span></div>
+    <div class="ir"><span class="k">Sharpe-like</span><span class="v">${num(P.sharpe_like).toFixed(2)}</span></div>
+    <div class="ir"><span class="k">Open positions</span><span class="v">${(P.positions||[]).length}</span></div>
+    <div class="ir"><span class="k">Max loss streak</span><span class="v vr">${num(P.max_loss_streak)}</span></div></div>`;
+}
+
+// ── EDGE ──
+function rEdge(){
+  kill(['chBuckets','chHourly']);
+  const pb=(P.price_buckets||[]);
+  mk('chBuckets',{data:{labels:pb.map(b=>b.bucket+'¢'),datasets:[
+    {type:'bar',label:'P&L $',data:pb.map(b=>num(b.pnl)),backgroundColor:barPL(pb.map(b=>num(b.pnl))),borderRadius:5,yAxisID:'y',order:2},
+    {type:'line',label:'Win%',data:pb.map(b=>num(b.win_rate)),borderColor:C.amber,backgroundColor:C.amber,borderWidth:2,pointRadius:3,pointBackgroundColor:C.amber,tension:0.3,yAxisID:'y1',order:1}
+  ]},options:{...opts(),scales:{x:opts().scales.x,y:{...opts().scales.y,position:'left',title:{display:true,text:'P&L $',color:'#454a5e',font:{size:9}}},y1:{position:'right',min:0,max:100,ticks:{color:'#454a5e',font:{size:9},callback:v=>v+'%'},grid:{drawOnChartArea:false}}}}});
+  const hp=(P.hourly_perf||[]);
+  mk('chHourly',{type:'bar',data:{labels:hp.map(h=>String(h.hour).padStart(2,'0')+'h'),datasets:[
+    {label:'P&L $',data:hp.map(h=>num(h.pnl)),backgroundColor:barPL(hp.map(h=>num(h.pnl))),borderRadius:4,yAxisID:'y'},
+    {type:'line',label:'Trades',data:hp.map(h=>num(h.trades)),borderColor:C.blue,borderWidth:1.4,pointRadius:2,tension:0.3,yAxisID:'y1'}
+  ]},options:{...opts(),scales:{x:opts().scales.x,y:opts().scales.y,y1:{position:'right',min:0,grid:{drawOnChartArea:false},ticks:{color:'#454a5e',font:{size:9}}}}}});
+  // side bias from paper settlements
+  const s={yes:{n:0,w:0,pnl:0,q:0},no:{n:0,w:0,pnl:0,q:0}};
+  for(const t of(P.settlements||[])){const sd=(t.side||'').toLowerCase();if(!s[sd])continue;s[sd].n++;s[sd].q+=num(t.qty||1);s[sd].pnl+=num(t.pnl_cents)/100;if(num(t.pnl_cents)>0)s[sd].w++}
+  const row=(k,o)=>`<div class="ir"><span class="k">${k}</span><span class="v">${o}</span></div>`;
+  const avg=o=>o.n>0?o.pnl/o.n:0;
+  $('sideBias').innerHTML=`<div class="ig two">
+    ${row('YES trades',`<span class="vg">${s.yes.n}</span>`)}${row('NO trades',`<span class="vr">${s.no.n}</span>`)}
+    ${row('YES win%',`<span class="${s.yes.n&&s.yes.w/s.yes.n>=0.5?'vg':'va'}">${s.yes.n?pct(s.yes.w/s.yes.n*100):'—'}</span>`)}${row('NO win%',`<span class="${s.no.n&&s.no.w/s.no.n>=0.5?'vg':'va'}">${s.no.n?pct(s.no.w/s.no.n*100):'—'}</span>`)}
+    ${row('YES avg $/trade',`<span class="${clsPL(avg(s.yes))}">${fmt$(avg(s.yes))}</span>`)}${row('NO avg $/trade',`<span class="${clsPL(avg(s.no))}">${fmt$(avg(s.no))}</span>`)}
+    ${row('YES P&amp;L <span class="dim">(raw)</span>',`<span class="${clsPL(s.yes.pnl)}">${fmt$(s.yes.pnl)}</span>`)}${row('NO P&amp;L <span class="dim">(raw)</span>',`<span class="${clsPL(s.no.pnl)}">${fmt$(s.no.pnl)}</span>`)}
+  </div><div style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.5">Win% is the clean signal (leak-independent): paper favours <b class="g">YES</b>. But <b class="a">$ totals include the pre-6/29 leak</b>, and live YES has shown adverse markout ("yes-bleed") — so paper $ overstates the real YES edge.</div>`;
+  // fill funnel
+  const fa=(AB.arms||[]).filter(a=>a.fill&&a.fill.posted>0);
+  $('edgeFunnel').innerHTML=fa.length?fa.map(a=>{const f=a.fill;return `<tr><td><b>${a.name}</b></td><td style="text-align:right">${f.posted}</td><td style="text-align:right;color:var(--green)">${f.filled}</td><td style="text-align:right;color:var(--amber)">${f.expired}</td><td style="text-align:right">${f.fill_rate!=null?pct(f.fill_rate):'—'}</td></tr>`}).join(''):'<tr><td colspan="5" class="dim">No maker quotes posted yet.</td></tr>';
+}
+
+// ── A/B ──
+const ABC=['#a970ff','#4d9eff','#12d693','#f5a623','#ff5470','#c9a4ff','#80bbff','#28d9e6','#f472b6','#ffd98a'];
+function rAB(){
+  const arms=AB.arms||[];$('abUpd').textContent=AB.updated_at?('· updated '+AB.updated_at.replace('T',' ').replace('Z',' UTC').slice(0,19)):'';
+  const settled=arms.filter(a=>a.n>0);
+  const leader=settled.slice().sort((a,b)=>num(b.total_pnl)-num(a.total_pnl))[0];
+  const sig=arms.filter(a=>a.pc_sig);
+  $('hero-abtests').innerHTML=
+    hero('','Arms Tracked',arms.length,`${settled.length} with settled trades`)+
+    hero(leader&&num(leader.total_pnl)>=0?'':'',`Leader (realized)`,`<span style="font-size:20px">${leader?leader.name:'—'}</span>`,leader?`${fmt$(leader.total_pnl)} · ${leader.n} trades`:'—')+
+    hero('','Open Positions',arms.reduce((s,a)=>s+num(a.open_positions),0),'across all arms')+
+    hero(sig.length?'':'',`Signif. Arms`,sig.length,`per-trade CI excludes 0`);
+  $('abBody').innerHTML=arms.map(a=>{
+    const badge=a.premium?'<span class="chip" style="background:rgba(169,112,255,.14);color:var(--purple-l)">premium</span>':(a.mode==='taker'?'<span class="chip paper">taker</span>':'<span class="chip" style="background:rgba(255,255,255,.05);color:var(--text3)">model</span>');
+    const off=a.enabled?'':' <span class="dim" style="font-size:9px">(off)</span>';
+    const ci=a.pc_pnl!=null?`${a.pc_pnl.toFixed(1)}¢ <span class="dim">[${a.pc_lo.toFixed(1)}, ${a.pc_hi.toFixed(1)}]</span>${a.pc_sig?' <span class="g">✓</span>':''}`:'—';
+    return `<tr><td><b>${a.name}</b> ${badge}${off}</td><td style="text-align:right">${a.n}</td><td style="text-align:right;color:${clr(a.total_pnl)}">${fmt$(a.total_pnl)}</td><td style="text-align:right;color:${a.return_pct!=null?clr(a.return_pct):'inherit'}">${a.return_pct!=null?spct(a.return_pct):'—'}</td><td style="text-align:right">${a.n>0?pct(a.win_rate):'—'}</td><td style="text-align:right">${a.open_positions}</td><td style="text-align:right">${a.fill&&a.fill.fill_rate!=null?pct(a.fill.fill_rate):'—'}</td><td style="text-align:right">${ci}</td><td style="text-align:right">${a.brier!=null?a.brier.toFixed(3):'—'}</td><td style="text-align:right;color:${a.bss!=null?(a.bss>=0?'var(--green)':'var(--red)'):'inherit'}">${a.bss!=null?spct(a.bss):'—'}</td></tr>`;
+  }).join('');
+  kill(['chABeq']);
+  const eq=arms.filter(a=>a.equity&&a.equity.length);
+  const mx=Math.max(0,...eq.map(a=>a.equity.length));
+  if(mx>0)mk('chABeq',{type:'line',data:{labels:Array.from({length:mx},(_,i)=>i+1),datasets:eq.map((a,i)=>({label:a.name,data:a.equity,borderColor:ABC[i%ABC.length],backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:0.15}))},options:opts({plugins:{legend:{display:true,labels:{color:'#9095aa',font:{size:9.5},boxWidth:8,padding:7,usePointStyle:true}}}})});
+}
+
+// ── MODELS ──
+function rModels(){
+  const bss=num(P.bss_all),bn=num(P.brier_settled);
+  $('hero-models').innerHTML=
+    hero('','Model Brier',num(P.brier_avg).toFixed(4),`lower is better · ${bn} scored`)+
+    hero('','Market Brier',num(P.brier_mkt_avg).toFixed(4),'benchmark')+
+    hero('',`Skill Score`,`<span class="${bss>=0?'g':'r'}">${(bss>=0?'+':'')+bss.toFixed(4)}</span>`,`${bss>=0?'beats':'trails'} market`)+
+    hero('','Rolling BSS (50)',`<span class="${num(P.last_50_bss)>=0?'g':'r'}">${(num(P.last_50_bss)>=0?'+':'')+num(P.last_50_bss).toFixed(3)}</span>`,'recent regime');
+  kill(['chCalib','chBrier','chCalibDet']);
+  const cal=(P.calibration||[]).filter(c=>c.count>0);
+  mk('chCalib',{type:'scatter',data:{datasets:[
+    {label:'Model',data:cal.map(c=>({x:c.pred/100,y:c.actual/100})),backgroundColor:hexA(C.purple,0.65),pointRadius:cal.map(c=>Math.min(15,Math.sqrt(num(c.count))*3.2))},
+    {label:'Perfect',data:[{x:0,y:0},{x:1,y:1}],borderColor:'rgba(255,255,255,0.12)',borderDash:[4,4],borderWidth:1,showLine:true,pointRadius:0}
+  ]},options:{...opts(),scales:{x:{...opts().scales.x,min:0,max:1,title:{display:true,text:'Predicted',color:'#454a5e',font:{size:9}}},y:{...opts().scales.y,min:0,max:1,title:{display:true,text:'Actual',color:'#454a5e',font:{size:9}}}}}});
+  if(P.brier_rolling&&P.brier_rolling.length)mk('chBrier',{type:'line',data:{labels:P.brier_rolling.map((_,i)=>i+1),datasets:[
+    {label:'Model',data:P.brier_rolling.map(b=>b.our),borderColor:C.red,borderWidth:1.4,pointRadius:0,tension:0.2},
+    {label:'Market',data:P.brier_rolling.map(b=>b.mkt),borderColor:C.green,borderWidth:1.4,pointRadius:0,tension:0.2,borderDash:[4,2]}
+  ]},options:opts()});
+  mk('chCalibDet',{type:'bar',data:{labels:(P.calibration||[]).map(c=>c.pred+'%'),datasets:[
+    {label:'Predicted',data:(P.calibration||[]).map(c=>c.pred),backgroundColor:hexA(C.purple,0.3),borderRadius:5},
+    {label:'Actual',data:(P.calibration||[]).map(c=>c.actual),backgroundColor:hexA(C.green,0.55),borderRadius:5}
+  ]},options:opts()});
+  // gate
+  let gc='W',gt='WAITING';if(bn>=150){if(bss>0.05){gc='G';gt='GREEN ✓'}else if(bss>-0.1){gc='Y';gt='YELLOW'}else{gc='R';gt='RED ✗'}}
+  $('brierGate').innerHTML=`<div class="gate gate-${gc==='G'?'ok':gc==='R'?'bad':'warn'}">${gt} — ${bn}/150 · BSS ${bss.toFixed(3)}</div><div class="ig">
+    <div class="ir"><span class="k">Model Brier</span><span class="v">${num(P.brier_avg).toFixed(4)}</span></div>
+    <div class="ir"><span class="k">Market Brier</span><span class="v">${num(P.brier_mkt_avg).toFixed(4)}</span></div>
+    <div class="ir"><span class="k">Skill score</span><span class="v ${bss>=0?'vg':'vr'}">${bss.toFixed(4)}</span></div>
+    <div class="ir"><span class="k">Gate rule</span><span class="v va">n≥150 &amp; BSS&gt;0.05</span></div></div>`;
+  // reliability from calibration array (overconfidence)
+  const relRows=(P.calibration||[]).filter(c=>c.count>0).map(c=>{
+    const bias=c.pred-c.actual;return `<div class="ir"><span class="k">${c.pred}% <span class="dim">(n${c.count})</span></span><span class="v ${Math.abs(bias)<=8?'vg':bias>0?'vr':'va'}">act ${c.actual.toFixed(0)}% <span class="dim">${bias>0?'+':''}${bias.toFixed(0)}</span></span></div>`;
+  }).join('');
+  const overpred=(P.calibration||[]).filter(c=>c.count>0&&c.pred>c.actual).length;
+  $('reliab').innerHTML=`<div style="font-size:11px;color:var(--text3);margin-bottom:8px">${overpred} of ${cal.length} buckets over-predict (stated&gt;realized). Curve is <b class="a">non-monotone</b> — high-confidence buckets are the most overconfident.</div><div class="ig">${relRows||'<div class="dim">No calibration data</div>'}</div>`;
+  // side accuracy from settlements
+  const s={yes:{n:0,w:0},no:{n:0,w:0}};for(const t of(P.settlements||[])){const sd=(t.side||'').toLowerCase();if(!s[sd])continue;s[sd].n++;if(num(t.pnl_cents)>0)s[sd].w++}
+  $('sideAcc').innerHTML=`<div class="ig">
+    <div class="ir"><span class="k">YES accuracy</span><span class="v ${s.yes.n&&s.yes.w/s.yes.n>=0.5?'vg':'va'}">${s.yes.n?pct(s.yes.w/s.yes.n*100):'—'}</span></div>
+    <div class="ir"><span class="k">NO accuracy</span><span class="v ${s.no.n&&s.no.w/s.no.n>=0.5?'vg':'va'}">${s.no.n?pct(s.no.w/s.no.n*100):'—'}</span></div>
+    <div class="ir"><span class="k">YES trades</span><span class="v">${s.yes.n}</span></div>
+    <div class="ir"><span class="k">NO trades</span><span class="v">${s.no.n}</span></div>
+    <div class="ir"><span class="k">Calibration src</span><span class="v vb">state/paper</span></div>
+    <div class="ir"><span class="k">Updated</span><span class="v dim" style="font-size:10px">${(P.model_calibration_updated||'').slice(0,10)||'—'}</span></div></div>`;
+}
+
+// ── CITIES ──
+function rCities(){
+  kill(['chCityPnL','chCityWR','chCityStk','chCityCnt']);const risk=P.risk||{};
+  const cs={};for(const s of(P.settlements||[])){const c=cityFromTicker(s.ticker);if(!cs[c])cs[c]={pnl:0,n:0,w:0};cs[c].pnl+=num(s.pnl_cents)/100;cs[c].n++;if(num(s.pnl_cents)>0)cs[c].w++}
+  for(const c of(P.cities||[])){if(!cs[c.code])cs[c.code]={pnl:num(c.pnl),n:0,w:0};cs[c.code].consec=num(c.consec_losses);cs[c.code].halted=(risk.halted_cities||[]).includes(c.code)}
+  const cl=Object.entries(cs).filter(([_,v])=>v.n>=1).sort((a,b)=>b[1].pnl-a[1].pnl);
+  const labels=cl.map(([k])=>k);
+  mk('chCityPnL',{type:'bar',data:{labels,datasets:[{label:'P&L $',data:cl.map(([_,v])=>v.pnl),backgroundColor:cl.map(([_,v])=>v.pnl>=0?hexA(C.green,0.62):hexA(C.red,0.62)),borderRadius:4}]},options:{...opts(),indexAxis:'y'}});
+  mk('chCityWR',{type:'bar',data:{labels,datasets:[{label:'Win%',data:cl.map(([_,v])=>v.n?v.w/v.n*100:0),backgroundColor:cl.map(([_,v])=>v.n&&v.w/v.n>=0.5?hexA(C.green,0.62):hexA(C.red,0.62)),borderRadius:4}]},options:{...opts(),indexAxis:'y',scales:{...opts().scales,x:{...opts().scales.x,max:100}}}});
+  mk('chCityStk',{type:'bar',data:{labels,datasets:[{label:'Consec losses',data:cl.map(([_,v])=>v.consec||0),backgroundColor:cl.map(([_,v])=>(v.consec||0)>=8?hexA(C.red,0.72):(v.consec||0)>=4?hexA(C.amber,0.7):hexA(C.green,0.5)),borderRadius:4}]},options:{...opts(),indexAxis:'y'}});
+  mk('chCityCnt',{type:'bar',data:{labels,datasets:[{label:'Trades',data:cl.map(([_,v])=>v.n),backgroundColor:hexA(C.blue,0.55),borderRadius:4}]},options:{...opts(),indexAxis:'y'}});
+  $('cbDet').innerHTML=`${(risk.halted_cities||[]).length?`<div class="gate gate-bad">🚫 Halted: ${(risk.halted_cities||[]).join(', ')}</div>`:`<div class="gate gate-ok">✓ All cities active</div>`}<div class="ig two">
+    <div class="ir"><span class="k">CB threshold</span><span class="v vr">${risk.city_loss_circuit_breaker_threshold||8} consec losses</span></div>
+    <div class="ir"><span class="k">Active breakers</span><span class="v">${(risk.halted_cities||[]).length||'0'}</span></div>
+    <div class="ir"><span class="k">Best city</span><span class="v vg">${cl[0]?.[0]||'—'} ${cl[0]?fmt$(cl[0][1].pnl):''}</span></div>
+    <div class="ir"><span class="k">Worst city</span><span class="v vr">${cl.at(-1)?.[0]||'—'} ${cl.length?fmt$(cl.at(-1)[1].pnl):''}</span></div></div>`;
+  $('cityMtx').innerHTML=cl.map(([k,v])=>`<div class="cc${v.halted?' halt':''}"><div class="code">${k}</div><div class="pnl" style="color:${v.pnl>=0?'var(--green)':'var(--red)'}">${fmt$(v.pnl)}</div><div class="meta">${v.n} tr · WR ${v.n?pct(v.w/v.n*100):'—'}</div></div>`).join('')||'<div class="dim" style="padding:12px">No city data</div>';
+}
+
+// ── SETTLEMENTS ──
+function renderSet(){
+  kill(['chSetDay','chSetSide']);
+  const filter=($('setFltr')?.value)||'all',sort=($('setSort')?.value)||'date-desc';
+  let all=[];
+  (P.settlements||[]).forEach(s=>all.push({...s,acct:'PAPER',qty:s.qty||1,settled_at:s.settled_at||s.date}));
+  (L.settlements||[]).forEach(s=>all.push({...s,acct:'LIVE',qty:s.qty||1,settled_at:s.settled_at||s.date}));
+  (L.open_positions||[]).filter(p=>p.status==='settled').forEach(p=>all.push({ticker:p.ticker,side:p.side,qty:p.qty,entry_cents:p.entry_price_cents,pnl_cents:num(p.realized_pnl_dollars)*100,acct:'LIVE',settled_at:p.close_time}));
+  if(filter!=='all')all=all.filter(s=>s.acct===filter.toUpperCase());
+  const cmp={'date-desc':(a,b)=>(b.settled_at||'').localeCompare(a.settled_at||''),'date-asc':(a,b)=>(a.settled_at||'').localeCompare(b.settled_at||''),'pnl-desc':(a,b)=>num(b.pnl_cents)-num(a.pnl_cents),'pnl-asc':(a,b)=>num(a.pnl_cents)-num(b.pnl_cents)};
+  all.sort(cmp[sort]);
+  const pr=all.filter(s=>s.acct==='PAPER'),lr=all.filter(s=>s.acct==='LIVE');
+  const pPnl=pr.reduce((s,x)=>s+num(x.pnl_cents)/100,0),lPnl=lr.reduce((s,x)=>s+num(x.pnl_cents)/100,0);
+  const pW=pr.filter(s=>num(s.pnl_cents)>0).length,lW=lr.filter(s=>num(s.pnl_cents)>0).length;
+  $('hero-settlements').innerHTML=
+    hero('','Paper Settled',pr.length,`${fmt$(pPnl)} realized`)+
+    hero('',`Paper WR`,pr.length?pct(pW/pr.length*100):'—',`${pW}W / ${pr.length-pW}L`)+
+    hero('real',`Live Settled`,lr.length,lr.length?`${fmt$(lPnl)} realized`:'no live settlements yet')+
+    hero('','Live WR',lr.length?pct(lW/lr.length*100):'—',lr.length?`${lW}W / ${lr.length-lW}L`:'—');
+  $('setBody').innerHTML=all.map(s=>{const pnl=num(s.pnl_cents)/100,ds=s.settled_at?new Date(s.settled_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';return `<tr><td><span class="chip ${s.acct.toLowerCase()}">${s.acct}</span></td><td class="mono">${s.ticker}</td><td><span class="chip ${(s.side||'').toLowerCase()}">${(s.side||'').toUpperCase()}</span></td><td style="text-align:right">${s.qty||1}</td><td style="text-align:right">${s.entry_cents||'?'}¢</td><td style="text-align:right;font-weight:650;color:${clr(pnl)}">${fmt$(pnl)}</td><td class="dim">${ds}</td></tr>`}).join('')||'<tr><td colspan="7"><div class="empty"><div class="ei">📋</div>No settlements</div></td></tr>';
+  const bd={};for(const s of all){const d=s.settled_at?s.settled_at.slice(0,10):(s.date||'?');bd[d]=(bd[d]||0)+num(s.pnl_cents)/100}const days=Object.keys(bd).sort();
+  if(days.length)mk('chSetDay',{type:'bar',data:{labels:days.map(d=>d.slice(5)),datasets:[{label:'Realized',data:days.map(d=>bd[d]),backgroundColor:barPL(days.map(d=>bd[d])),borderRadius:4}]},options:opts()});
+  const ss={yes:0,no:0};for(const s of all){const sd=(s.side||'').toLowerCase();if(sd in ss)ss[sd]+=num(s.pnl_cents)/100}
+  mk('chSetSide',{type:'bar',data:{labels:['YES','NO'],datasets:[{label:'Realized',data:[ss.yes,ss.no],backgroundColor:[clr(ss.yes)==='var(--green)'?hexA(C.green,0.62):hexA(C.red,0.62),clr(ss.no)==='var(--green)'?hexA(C.green,0.62):hexA(C.red,0.62)],borderRadius:6}]},options:opts()});
+}
+
+// ── RISK ──
+function rRisk(){
+  kill(['chDD','chPSize','chConc','chStreak']);const risk=P.risk||{};const dd=maxDD();
+  $('hero-risk').innerHTML=
+    hero('','Max Drawdown',`<span class="r">${fmt$(dd)}</span>`,'paper peak→trough')+
+    hero('','Consec Losses',num(risk.consecutive_losses),`current streak`)+
+    hero((risk.halted_cities||[]).length?'':'',`Halted Cities`,(risk.halted_cities||[]).length,(risk.halted_cities||[]).join(', ')||'none')+
+    hero('real','Live Max DD',`$${num(L.live_max_drawdown).toFixed(2)}`,`${pct(L.live_max_drawdown_pct)} of peak`);
+  const dl=(P.daily||[]).map(d=>fmtDate(d.date));
+  let cum=0,peak=0;const ddp=[];for(const d of(P.daily||[])){cum+=num(d.pnl);if(cum>peak)peak=cum;ddp.push(peak>0?-(peak-cum)/peak*100:0)}
+  mk('chDD',{type:'line',data:{labels:dl,datasets:[{label:'Drawdown %',data:ddp,borderColor:C.red,backgroundColor:c=>grad(c.chart.ctx,'#ff5470'),fill:true,tension:0.3,pointRadius:0,borderWidth:1.8}]},options:opts()});
+  const st=P.settlements||[];
+  if(st.length){const n=Math.max(1,Math.floor(st.length/30));const avgs=[];for(let i=0;i<st.length;i+=n){const ch=st.slice(i,i+n);avgs.push({x:Math.round(i+ch.length/2),y:ch.reduce((s,t)=>s+Math.abs(num(t.entry_cents||t.price_cents)),0)/ch.length})}
+    mk('chPSize',{type:'line',data:{datasets:[{label:'Avg entry ¢',data:avgs,borderColor:C.cyan,tension:0.3,pointRadius:2,pointBackgroundColor:C.cyan,borderWidth:1.6}]},options:{...opts(),scales:{...opts().scales,y:{...opts().scales.y,min:0}}}});}
+  if(st.length>5){const sorted=[...st].sort((a,b)=>Math.abs(num(b.pnl_cents))-Math.abs(num(a.pnl_cents)));const tot=Math.abs(sorted.reduce((s,t)=>s+num(t.pnl_cents)/100,0))||1;let c2=0;const cd=[];for(let i=0;i<sorted.length;i++){c2+=num(sorted[i].pnl_cents)/100;cd.push({x:i+1,y:c2/tot*100})}
+    mk('chConc',{type:'line',data:{datasets:[{label:'Cum %',data:cd,borderColor:C.blue,fill:true,backgroundColor:c=>grad(c.chart.ctx,'#4d9eff'),tension:0.3,pointRadius:0,borderWidth:1.8},{label:'Equal',data:[{x:1,y:0},{x:sorted.length,y:100}],borderColor:'rgba(255,255,255,0.1)',borderDash:[4,4],pointRadius:0}]},options:opts()});}
+  if(st.length){let streak=0;const streaks=[];for(const s of st){if(num(s.pnl_cents)<0)streak++;else{if(streak>0)streaks.push(streak);streak=0}}if(streak>0)streaks.push(streak);const bins={};for(const s of streaks)bins[s]=(bins[s]||0)+1;
+    mk('chStreak',{type:'bar',data:{labels:Object.keys(bins),datasets:[{label:'Frequency',data:Object.values(bins),backgroundColor:hexA(C.red,0.45),borderRadius:5}]},options:{...opts(),scales:{...opts().scales,x:{...opts().scales.x,title:{display:true,text:'Consecutive losses',color:'#454a5e',font:{size:9}}}}}});}
+  $('riskDash').innerHTML=`<div class="ig two">
+    <div class="ir"><span class="k">Max drawdown (paper)</span><span class="v vr">${fmt$(dd)}</span></div>
+    <div class="ir"><span class="k">Consec losses</span><span class="v ${num(risk.consecutive_losses)>=5?'vr':'vg'}">${num(risk.consecutive_losses)}</span></div>
+    <div class="ir"><span class="k">Today P&amp;L (paper)</span><span class="v ${clsPL(num(risk.today_pnl_cents)/100)}">${fmt$(num(risk.today_pnl_cents)/100)}</span></div>
+    <div class="ir"><span class="k">Week P&amp;L (paper)</span><span class="v ${clsPL(num(risk.week_pnl_cents)/100)}">${fmt$(num(risk.week_pnl_cents)/100)}</span></div>
+    <div class="ir"><span class="k">Halted cities</span><span class="v ${(risk.halted_cities||[]).length?'vr':'vg'}">${(risk.halted_cities||[]).join(', ')||'None'}</span></div>
+    <div class="ir"><span class="k">CB threshold</span><span class="v va">${risk.city_loss_circuit_breaker_threshold||8} losses</span></div>
+    <div class="ir"><span class="k">Live max DD</span><span class="v vr">$${num(L.live_max_drawdown).toFixed(2)} (${pct(L.live_max_drawdown_pct)})</span></div>
+    <div class="ir"><span class="k">Live streak</span><span class="v ${L.live_streak_type==='win'?'vg':'vr'}">${num(L.live_streak_count)} ${L.live_streak_type||''}</span></div></div>`;
+}
+
+// ── SYSTEM ──
+function rSystem(){
+  const liveOn=(L.open_positions||[]).length>0;
+  $('hero-system').innerHTML=
+    hero('','Feeds','3','data · live · a/b')+
+    hero(liveOn?'real':'','Live Trading',liveOn?'ACTIVE':'IDLE',`${(L.open_positions||[]).length} open positions`)+
+    hero('','Paper Model',num(P.total_trades)>0?'ACTIVE':'IDLE',`${num(P.total_trades)} trades`)+
+    hero('','A/B Arms',(AB.arms||[]).length,'parallel books');
+  const feeds=[['data.json (paper)',FEEDS.data.t],['data-live.json (live)',FEEDS.live.t],['ab-data.json (arms)',FEEDS.ab.t]];
+  $('feedHealth').innerHTML=`<div class="ig">`+feeds.map(([n,t])=>{const m=feedAgeMin(t);const fc=freshClass(m);const c=fc==='g'?'vg':fc==='a'?'va':'vr';return `<div class="ir"><span class="k"><span class="dot ${fc}" style="display:inline-block;margin-right:7px"></span>${n}</span><span class="v ${c}">${m!=null?(m<1?'just now':Math.round(m)+'m ago'):'—'}</span></div>`}).join('')+`</div><div style="font-size:11px;color:var(--text3);margin-top:9px">Green &lt;20m · amber &lt;75m · red stale. Feeds are regenerated by the trade-cycle cron.</div>`;
+  $('sysSnap').innerHTML=`<div class="ig two">
+    <div class="ir"><span class="k">Live total</span><span class="v vg">${usd2(L.weather_total_dollars)}</span></div>
+    <div class="ir"><span class="k">Live P&amp;L</span><span class="v ${clsPL(L.weather_pnl_dollars)}">${fmt$(L.weather_pnl_dollars)}</span></div>
+    <div class="ir"><span class="k">Paper leak-free</span><span class="v ${clsPL(P.pnl_leakfree)}">${fmt$(P.pnl_leakfree)}</span></div>
+    <div class="ir"><span class="k">Model BSS</span><span class="v ${num(P.bss_all)>=0?'vg':'vr'}">${num(P.bss_all).toFixed(3)}</span></div>
+    <div class="ir"><span class="k">Settled trades</span><span class="v vb">${num(P.brier_settled)}</span></div>
+    <div class="ir"><span class="k">Open (live/paper)</span><span class="v">${(L.open_positions||[]).length} / ${(P.positions||[]).length}</span></div>
+    <div class="ir"><span class="k">Cal. updated</span><span class="v dim" style="font-size:10px">${(P.model_calibration_updated||'').slice(0,10)||'—'}</span></div>
+    <div class="ir"><span class="k">Refreshed</span><span class="v dim" style="font-size:10px">${$('ts').textContent||'—'}</span></div></div>`;
+  const B='/Users/you/.openclaw/workspace';
+  const docs=[
+    ['📝','LESSONS.md — model corrections from losses',B+'/automations/kalshi-weather/LESSONS.md','p'],
+    ['📖','Weather Trader README',B+'/automations/kalshi-weather/README.md','b'],
+    ['⚠️','Risk Gap Notes',B+'/automations/kalshi-weather/RISK-GAP-NOTES.md','a'],
+    ['📓','Trading Journal',B+'/research/kalshi-trading-journal.md','b'],
+    ['🐛','Debug Notes',B+'/research/kalshi-debug-notes.md','p'],
+    ['📊','Strategy Analysis',B+'/research/kalshi-analysis.md','dim'],
+  ];
+  $('docLinks').innerHTML=`<div class="links">`+docs.map(([e,t,h])=>`<a href="file://${h}" target="_blank" class="${h}"><span>${e}</span><span>${t}</span></a>`).join('')+`</div>`;
+  $('changelog').innerHTML=`<div style="font-size:12px;line-height:1.7;color:var(--text2)">
+    <b class="p">v5 (Jul 2026):</b> per-city grid→station actual corrections (Dallas priced off DFW not Love; grid ~1.5°F cold-biased); live-first cycle ordering; GEFS ensemble live; honest leak-free P&amp;L accounting; 500+ test suite.<br><br>
+    <b class="b">v4 (Jun 20):</b> root-cause fix — forecast was silently replaced by climatology prior; KDE bandwidth 1.0→0.5; prob floor 0.12→0.03; calibrated Kelly + liquidity filter + max-open cap.<br><br>
+    <b class="dim">v3 (Jun 18):</b> prior weight 0.20–0.35; global scale floor 3.0°F; prob floor 12%; NO edge ×2.0.<br>
+    <b class="dim">v2 (Jun 15):</b> climatology prior; persistence blend; NBM forecast; EWMA error tracker; isotonic calibration.<br>
+    <b class="dim">v1 (Jun 11):</b> Gaussian-on-threshold; 3-member Open-Meteo ensemble; basic risk gate + Kelly.<br><br>
+    <span style="font-size:11px;color:var(--text3)">Note: earlier "forecast beats climatology by +62.7%" claims measured a legacy/duplicate model path and are not load-bearing — trust the live BSS gate above.</span></div>`;
+}
+
+// ── boot ──
+themeCharts();
+loadAll();
+setInterval(loadAll,300000);
+</script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+[
+  {
+    "ticker": "KXHIGHTHOU-26MAY28-T91",
+    "fair_prob": 0.8,
+    "confidence": "high",
+    "rationale": "Houston hot",
+    "source": "test",
+    "_market": {
+      "ticker": "KXHIGHTHOU-26MAY28-T91",
+      "close_time": "2099-01-01T12:00:00+00:00",
+      "yes_bid": 49,
+      "yes_ask": 50,
+      "no_bid": 49,
+      "no_ask": 50
+    }
+  },
+  {
+    "ticker": "KXLOWTCHI-26MAY28-T55",
+    "fair_prob": 0.2,
+    "confidence": "high",
+    "rationale": "Chicago cool",
+    "source": "test",
+    "_market": {
+      "ticker": "KXLOWTCHI-26MAY28-T55",
+      "close_time": "2099-01-01T12:00:00+00:00",
+      "yes_bid": 50,
+      "yes_ask": 50,
+      "no_bid": 50,
+      "no_ask": 50
+    }
+  },
+  {
+    "ticker": "KXHIGHTPHX-26MAY28-T105",
+    "fair_prob": 0.8,
+    "confidence": "low",
+    "rationale": "Phoenix low confidence",
+    "source": "test",
+    "_market": {
+      "ticker": "KXHIGHTPHX-26MAY28-T105",
+      "close_time": "2099-01-01T12:00:00+00:00",
+      "yes_bid": 50,
+      "yes_ask": 50,
+      "no_bid": 50,
+      "no_ask": 50
+    }
+  },
+  {
+    "ticker": "KXTEMPATLH-26MAY28-T82",
+    "fair_prob": 0.5,
+    "confidence": "high",
+    "rationale": "Atlanta coin flip",
+    "source": "test",
+    "_market": {
+      "ticker": "KXTEMPATLH-26MAY28-T82",
+      "close_time": "2099-01-01T12:00:00+00:00",
+      "yes_bid": 50,
+      "yes_ask": 50,
+      "no_bid": 50,
+      "no_ask": 50
+    }
+  }
+]
